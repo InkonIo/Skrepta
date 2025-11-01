@@ -51,6 +51,15 @@ public class JwtService {
     }
 
     /**
+     * Generates a refresh token.
+     */
+    public String generateRefreshToken(
+            UserDetails userDetails
+    ) {
+        return buildToken(new HashMap<>(), userDetails, refreshExpiration);
+    }
+
+    /**
      * Generates an access token with extra claims.
      */
     public String generateToken(
@@ -60,14 +69,6 @@ public class JwtService {
         return buildToken(extraClaims, userDetails, jwtExpiration);
     }
 
-    /**
-     * Generates a refresh token.
-     */
-    public String generateRefreshToken(
-            UserDetails userDetails
-    ) {
-        return buildToken(new HashMap<>(), userDetails, refreshExpiration);
-    }
 
     private String buildToken(
             Map<String, Object> extraClaims,

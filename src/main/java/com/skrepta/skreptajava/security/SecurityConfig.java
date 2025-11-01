@@ -1,4 +1,4 @@
-package com.skrepta.skreptajava.auth.security;
+package com.skrepta.skreptajava.security;
 
 import com.skrepta.skreptajava.auth.service.JwtAuthenticationFilter;
 import com.skrepta.skreptajava.auth.service.UserDetailsServiceImpl;
@@ -10,6 +10,7 @@ import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -20,6 +21,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity // Включаем поддержку @PreAuthorize
 @RequiredArgsConstructor
 public class SecurityConfig {
 
@@ -31,11 +33,14 @@ public class SecurityConfig {
         http
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
-                        // Public endpoints for authentication
+                        // Public endpoints for authentication and Swagger
                         .requestMatchers("/api/auth/**",
                                 "/v3/api-docs/**",
                                 "/swagger-ui/**",
                                 "/swagger-ui.html").permitAll()
+                        // Admin endpoints are secured by @PreAuthorize in AdminController,
+                        // but we allow authenticated access here and let method security handle roles.
+                        .requestMatchers("/api/admin/**").authenticated()
                         // Allow access to the main application class (if needed for health checks, etc.)
                         .requestMatchers("/").permitAll()
                         // All other requests must be authenticated

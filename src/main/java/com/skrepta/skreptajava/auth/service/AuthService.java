@@ -147,6 +147,32 @@ public class AuthService {
         userRepository.save(user);
     }
 
+    // TODO: Implement refresh token logic
+
+    /**
+     * Refreshes the access token using a valid refresh token.
+     * @param refreshToken the refresh token
+     * @return a new AuthResponse with a new access token and the same refresh token
+     */
+    public AuthResponse refreshToken(String refreshToken) {
+        final String userEmail = jwtService.extractUsername(refreshToken);
+
+        if (userEmail != null) {
+            User user = userRepository.findByEmail(userEmail)
+                    .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+            if (jwtService.isTokenValid(refreshToken, user)) {
+                String newAccessToken = jwtService.generateToken(user);
+                return AuthResponse.builder()
+                        .accessToken(newAccessToken)
+                        .refreshToken(refreshToken)
+                        .user(mapToUserResponse(user))
+                        .build();
+            }
+        }
+        throw new InvalidCredentialsException("Invalid or expired refresh token");
+    }
+
     private UserResponse mapToUserResponse(User user) {
         return UserResponse.builder()
                 .id(user.getId())

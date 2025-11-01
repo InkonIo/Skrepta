@@ -18,4 +18,5 @@ public class UserResponse {
     private String city;
     private User.Role role;
     private String avatarUrl;
+    private java.time.Instant createdAt;
 }
