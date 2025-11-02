@@ -18,10 +18,15 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import java.util.Arrays;
 
 @Configuration
 @EnableWebSecurity
-@EnableMethodSecurity // Включаем поддержку @PreAuthorize
+@EnableMethodSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
 
@@ -32,18 +37,97 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(AbstractHttpConfigurer::disable)
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .authorizeHttpRequests(auth -> auth
-                        // Public endpoints for authentication and Swagger
-                        .requestMatchers("/api/auth/**",
+                        // PUBLIC endpoints - доступны всем без авторизации
+                        // Auth endpoints
+                        .requestMatchers(
+                                "/api/auth/login",
+                                "/api/auth/register",
+                                "/api/auth/forgot-password",
+                                "/api/auth/reset-password"
+                        ).permitAll()
+                        
+                        // Swagger/OpenAPI documentation
+                        .requestMatchers(
                                 "/v3/api-docs/**",
                                 "/swagger-ui/**",
-                                "/swagger-ui.html").permitAll()
-                        // Admin endpoints are secured by @PreAuthorize in AdminController,
-                        // but we allow authenticated access here and let method security handle roles.
-                        .requestMatchers("/api/admin/**").authenticated()
-                        // Allow access to the main application class (if needed for health checks, etc.)
-                        .requestMatchers("/").permitAll()
-                        // All other requests must be authenticated
+                                "/swagger-ui.html"
+                        ).permitAll()
+                        
+                        // Health check and error pages
+                        .requestMatchers("/", "/error").permitAll()
+                        
+                        // READ-ONLY PUBLIC endpoints - просмотр доступен всем
+                        .requestMatchers(
+                                "GET",
+                                "/api/shops",
+                                "/api/shops/{id}",
+                                "/api/items",
+                                "/api/items/{id}",
+                                "/api/categories"
+                        ).permitAll()
+                        
+                        // AUTHENTICATED USER endpoints - требуют авторизации
+                        // Favorites (только для авторизованных пользователей)
+                        .requestMatchers("/api/favorites/**").authenticated()
+                        
+                        // Refresh token (только для авторизованных)
+                        .requestMatchers("/api/auth/refresh-token").authenticated()
+                        
+                        // ADMIN endpoints - доступны только админам
+                        // Управление пользователями
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                        
+                        // SHOP OWNER / ADMIN endpoints - управление магазинами
+                        .requestMatchers(
+                                "POST",
+                                "/api/shops"
+                        ).authenticated() // В контроллере проверяем роль SHOP_OWNER или ADMIN
+                        
+                        .requestMatchers(
+                                "PUT",
+                                "/api/shops/{id}"
+                        ).authenticated() // В контроллере проверяем владельца или ADMIN
+                        
+                        .requestMatchers(
+                                "DELETE",
+                                "/api/shops/{id}"
+                        ).authenticated() // В контроллере проверяем владельца или ADMIN
+                        
+                        // SHOP OWNER / ADMIN endpoints - управление товарами
+                        .requestMatchers(
+                                "POST",
+                                "/api/shops/{shopId}/items"
+                        ).authenticated() // В контроллере проверяем владельца магазина или ADMIN
+                        
+                        .requestMatchers(
+                                "PUT",
+                                "/api/items/{id}"
+                        ).authenticated() // В контроллере проверяем владельца магазина или ADMIN
+                        
+                        .requestMatchers(
+                                "DELETE",
+                                "/api/items/{id}"
+                        ).authenticated() // В контроллере проверяем владельца магазина или ADMIN
+                        
+                        // ADMIN endpoints - управление категориями
+                        .requestMatchers(
+                                "POST",
+                                "/api/categories"
+                        ).hasRole("ADMIN")
+                        
+                        .requestMatchers(
+                                "PUT",
+                                "/api/categories/{id}"
+                        ).hasRole("ADMIN")
+                        
+                        .requestMatchers(
+                                "DELETE",
+                                "/api/categories/{id}"
+                        ).hasRole("ADMIN")
+                        
+                        // Все остальные запросы требуют аутентификации
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session
@@ -71,5 +155,18 @@ public class SecurityConfig {
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
+    }
+
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
+        configuration.setAllowedOrigins(Arrays.asList("http://localhost:5173", "http://localhost:3000"));
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        configuration.setAllowedHeaders(Arrays.asList("*"));
+        configuration.setAllowCredentials(true); // Включаем для отправки токенов
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", configuration);
+        return source;
     }
 }

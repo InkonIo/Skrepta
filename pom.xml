@@ -60,6 +60,21 @@
             <artifactId>spring-boot-starter-mail</artifactId>
         </dependency>
 
+        <dependency>
+    <groupId>com.amazonaws</groupId>
+    <artifactId>aws-java-sdk-s3</artifactId>
+    <version>1.12.742</version>
+</dependency>
+
+<dependency>
+    <groupId>com.amazonaws</groupId>
+    <artifactId>aws-java-sdk-core</artifactId>
+    <version>1.12.742</version>
+</dependency>
+
+
+
+
         <!-- PostgreSQL -->
         <dependency>
             <groupId>org.postgresql</groupId>

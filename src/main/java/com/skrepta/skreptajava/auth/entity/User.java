@@ -11,7 +11,9 @@ import org.springframework.security.core.userdetails.UserDetails;
 
 import java.time.Instant;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Data
 @Builder
@@ -45,6 +47,15 @@ public class User implements UserDetails {
 
     private String avatarUrl;
 
+    // Связь с избранными товарами: Пользователь может добавить много товаров в избранное
+    @ManyToMany
+    @JoinTable(
+            name = "user_favorites",
+            joinColumns = @JoinColumn(name = "user_id"),
+            inverseJoinColumns = @JoinColumn(name = "item_id")
+    )
+    private Set<com.skrepta.skreptajava.item.entity.Item> favorites = new HashSet<>();
+
     private String resetPasswordToken;
 
     private Instant resetPasswordTokenExpiry;
@@ -55,9 +66,10 @@ public class User implements UserDetails {
     // --- Fields for UserDetails ---
 
     @Override
-    public Collection<? extends GrantedAuthority> getAuthorities() {
-        return List.of(new SimpleGrantedAuthority(role.name()));
-    }
+public Collection<? extends GrantedAuthority> getAuthorities() {
+    return List.of(new SimpleGrantedAuthority("ROLE_" + role.name()));
+}
+
 
     @Override
     public String getUsername() {
