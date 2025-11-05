@@ -61,11 +61,11 @@ public class ShopService {
                 .description(request.getDescription())
                 .logoUrl(logoUrl)
                 .phone(request.getPhone())
-                .instagram(request.getInstagram())
+                .instagramLink(request.getInstagramLink())
                 .city(request.getCity())
                 .address(request.getAddress())
                 .createdAt(Instant.now())
-                .isApproved(currentUser.getRole() == User.Role.ADMIN) // Админ одобряет автоматически
+                .isApproved(currentUser.getRole() == User.Role.ADMIN)
                 .categories(categories)
                 .build();
 
@@ -94,7 +94,7 @@ public class ShopService {
         shop.setName(request.getName());
         shop.setDescription(request.getDescription());
         shop.setPhone(request.getPhone());
-        shop.setInstagram(request.getInstagram());
+        shop.setInstagramLink(request.getInstagramLink());
         shop.setCity(request.getCity());
         shop.setAddress(request.getAddress());
         shop.setCategories(categories);
@@ -197,7 +197,7 @@ public class ShopService {
                 .description(shop.getDescription())
                 .logoUrl(shop.getLogoUrl())
                 .phone(shop.getPhone())
-                .instagram(shop.getInstagram())
+                .instagramLink(shop.getInstagramLink())
                 .city(shop.getCity())
                 .address(shop.getAddress())
                 .rating(shop.getRating())

@@ -19,7 +19,7 @@ public class ShopRequest {
     @NotBlank(message = "Phone number is required")
     private String phone;
 
-    private String instagram;
+    private String instagramLink;
 
     @NotBlank(message = "City is required")
     private String city;

@@ -38,7 +38,7 @@ public class Shop {
 
     private String logoUrl;
     private String phone;
-    private String instagram;
+    private String instagramLink;
     private String city;
     private String address;
     private double rating = 0.0;
