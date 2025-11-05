@@ -1,6 +1,7 @@
 package com.skrepta.skreptajava.admin.controller;
 
 import com.skrepta.skreptajava.admin.dto.UserRoleUpdateRequest;
+import com.skrepta.skreptajava.admin.dto.UserUpdateRequest;
 import com.skrepta.skreptajava.admin.service.AdminService;
 import com.skrepta.skreptajava.auth.dto.UserResponse;
 import com.skrepta.skreptajava.shop.dto.ShopResponse;
@@ -35,6 +36,14 @@ public class AdminController {
             @Valid @RequestBody UserRoleUpdateRequest request
     ) {
         return ResponseEntity.ok(adminService.updateUserRole(userId, request.getNewRole()));
+    }
+
+    @PutMapping("/users/{userId}")
+    public ResponseEntity<UserResponse> updateUser(
+            @PathVariable Long userId,
+            @Valid @RequestBody UserUpdateRequest request
+    ) {
+        return ResponseEntity.ok(adminService.updateUser(userId, request));
     }
 
     @DeleteMapping("/users/{userId}")

@@ -173,6 +173,15 @@ public class AuthService {
         throw new InvalidCredentialsException("Invalid or expired refresh token");
     }
 
+    public void deleteMyAccount(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with email: " + email));
+
+        // TODO: Добавить логику для удаления связанных данных (магазины, товары и т.д.)
+        // Временно просто удаляем пользователя.
+        userRepository.delete(user);
+    }
+
     private UserResponse mapToUserResponse(User user) {
         return UserResponse.builder()
                 .id(user.getId())

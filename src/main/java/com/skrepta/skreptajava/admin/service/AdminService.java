@@ -45,14 +45,45 @@ public class AdminService {
     }
 
     /**
+     * Updates a user's details by ID.
+     * @param userId the ID of the user to update
+     * @param request the update request DTO
+     * @return the updated user as a UserResponse DTO
+     */
+    @Transactional
+    public UserResponse updateUser(Long userId, com.skrepta.skreptajava.admin.dto.UserUpdateRequest request) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + userId));
+
+        // Проверка на уникальность email, если он изменился
+        if (!user.getEmail().equals(request.getEmail()) && userRepository.existsByEmail(request.getEmail())) {
+            throw new com.skrepta.skreptajava.auth.exception.UserAlreadyExistsException("User with email " + request.getEmail() + " already exists.");
+        }
+
+        user.setEmail(request.getEmail());
+        user.setFio(request.getFio());
+        user.setPhoneNumber(request.getPhoneNumber());
+        user.setCity(request.getCity());
+        user.setRole(request.getRole());
+        user.setAvatarUrl(request.getAvatarUrl());
+
+        userRepository.save(user);
+
+        return mapToUserResponse(user);
+    }
+
+    /**
      * Deletes a user by ID.
      * @param userId the ID of the user to delete
      */
+    @Transactional
     public void deleteUser(Long userId) {
-        if (!userRepository.existsById(userId)) {
-            throw new ResourceNotFoundException("User not found with ID: " + userId);
-        }
-        userRepository.deleteById(userId);
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + userId));
+        
+        // TODO: Добавить логику для удаления связанных данных (магазины, товары и т.д.)
+        // Временно просто удаляем пользователя.
+        userRepository.delete(user);
     }
 
     /**
