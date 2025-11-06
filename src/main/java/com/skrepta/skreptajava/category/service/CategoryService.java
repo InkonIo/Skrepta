@@ -3,6 +3,7 @@ package com.skrepta.skreptajava.category.service;
 import com.skrepta.skreptajava.auth.exception.ResourceNotFoundException;
 import com.skrepta.skreptajava.category.dto.CategoryRequest;
 import com.skrepta.skreptajava.category.dto.CategoryResponse;
+import com.skrepta.skreptajava.category.dto.CategoryStatusRequest;
 import com.skrepta.skreptajava.category.entity.Category;
 import com.skrepta.skreptajava.category.repository.CategoryRepository;
 import lombok.RequiredArgsConstructor;
@@ -123,4 +124,16 @@ public class CategoryService {
                 .children(children)
                 .build();
     }
+
+    public CategoryResponse updateCategoryStatus(Long id, CategoryStatusRequest request) {
+    Category category = categoryRepository.findById(id)
+            .orElseThrow(() -> new RuntimeException("Category not found"));
+
+    category.setIsActive(request.getIsActive());
+
+    categoryRepository.save(category);
+
+    return CategoryResponse.fromEntity(category);
+}
+
 }

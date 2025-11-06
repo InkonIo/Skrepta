@@ -2,6 +2,7 @@ package com.skrepta.skreptajava.category.controller;
 
 import com.skrepta.skreptajava.category.dto.CategoryRequest;
 import com.skrepta.skreptajava.category.dto.CategoryResponse;
+import com.skrepta.skreptajava.category.dto.CategoryStatusRequest;
 import com.skrepta.skreptajava.category.service.CategoryService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -46,4 +47,14 @@ public class CategoryController {
         categoryService.deleteCategory(id);
         return ResponseEntity.noContent().build();
     }
+
+    @PatchMapping("/{id}/status")
+@PreAuthorize("hasRole('ADMIN')")
+public ResponseEntity<CategoryResponse> updateCategoryStatus(
+        @PathVariable Long id,
+        @RequestBody @Valid CategoryStatusRequest request
+) {
+    return ResponseEntity.ok(categoryService.updateCategoryStatus(id, request));
+}
+
 }
