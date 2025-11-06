@@ -13,6 +13,7 @@ import java.time.Instant;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 
 @Data
@@ -34,7 +35,7 @@ public class User implements UserDetails {
     private String password;
 
     @Column(nullable = false)
-    private String fio; // Full Name (ФИО)
+    private String fio;
 
     @Column(unique = true)
     private String phoneNumber;
@@ -47,7 +48,6 @@ public class User implements UserDetails {
 
     private String avatarUrl;
 
-    // Связь с избранными товарами: Пользователь может добавить много товаров в избранное
     @ManyToMany
     @JoinTable(
             name = "user_favorites",
@@ -63,13 +63,12 @@ public class User implements UserDetails {
     @Column(nullable = false)
     private Instant createdAt;
 
-    // --- Fields for UserDetails ---
+    // --- UserDetails methods ---
 
     @Override
-public Collection<? extends GrantedAuthority> getAuthorities() {
-    return List.of(new SimpleGrantedAuthority("ROLE_" + role.name()));
-}
-
+    public Collection<? extends GrantedAuthority> getAuthorities() {
+        return List.of(new SimpleGrantedAuthority("ROLE_" + role.name()));
+    }
 
     @Override
     public String getUsername() {
@@ -99,6 +98,20 @@ public Collection<? extends GrantedAuthority> getAuthorities() {
     @Override
     public boolean isEnabled() {
         return true;
+    }
+
+    // ✅ КРИТИЧЕСКИ ВАЖНО: Переопределяем equals и hashCode
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof User)) return false;
+        User user = (User) o;
+        return id != null && Objects.equals(id, user.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return getClass().hashCode();
     }
 
     public enum Role {

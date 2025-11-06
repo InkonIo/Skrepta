@@ -10,6 +10,7 @@ import lombok.NoArgsConstructor;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 
 @Data
@@ -46,4 +47,18 @@ public class Category {
 
     @ManyToMany(mappedBy = "categories")
     private Set<Shop> shops = new HashSet<>();
+
+    // ✅ КРИТИЧЕСКИ ВАЖНО: Переопределяем equals и hashCode
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof Category)) return false;
+        Category category = (Category) o;
+        return id != null && Objects.equals(id, category.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return getClass().hashCode();
+    }
 }

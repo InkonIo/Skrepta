@@ -9,6 +9,7 @@ import lombok.NoArgsConstructor;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Objects;
 
 @Data
 @Builder
@@ -32,8 +33,6 @@ public class Item {
     @Column(columnDefinition = "TEXT")
     private String description;
 
-
-
     @ElementCollection
     @CollectionTable(name = "item_images", joinColumns = @JoinColumn(name = "item_id"))
     @Column(name = "image_url")
@@ -53,4 +52,18 @@ public class Item {
     private Instant createdAt;
 
     private Instant updatedAt;
+
+    // ✅ КРИТИЧЕСКИ ВАЖНО: Переопределяем equals и hashCode
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof Item)) return false;
+        Item item = (Item) o;
+        return id != null && Objects.equals(id, item.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return getClass().hashCode();
+    }
 }

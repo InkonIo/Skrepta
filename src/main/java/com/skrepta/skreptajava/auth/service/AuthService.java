@@ -11,14 +11,19 @@ import com.skrepta.skreptajava.auth.exception.InvalidCredentialsException;
 import com.skrepta.skreptajava.auth.exception.ResourceNotFoundException;
 import com.skrepta.skreptajava.auth.exception.UserAlreadyExistsException;
 import com.skrepta.skreptajava.auth.repository.UserRepository;
+import com.skrepta.skreptajava.shop.repository.ShopRepository;
+import com.skrepta.skreptajava.shop.entity.Shop;
+import com.skrepta.skreptajava.config.FileStorageService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Random;
 
 @Service
@@ -26,10 +31,12 @@ import java.util.Random;
 public class AuthService {
 
     private final UserRepository userRepository;
+    private final ShopRepository shopRepository;
+    private final FileStorageService fileStorageService;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
-    private final EmailService emailService; // Inject EmailService
+    private final EmailService emailService;
 
     /**
      * Registers a new user.
@@ -147,8 +154,6 @@ public class AuthService {
         userRepository.save(user);
     }
 
-    // TODO: Implement refresh token logic
-
     /**
      * Refreshes the access token using a valid refresh token.
      * @param refreshToken the refresh token
@@ -173,12 +178,64 @@ public class AuthService {
         throw new InvalidCredentialsException("Invalid or expired refresh token");
     }
 
+    /**
+     * Deletes the user account and all associated data (shops, items, favorites, files).
+     * @param email the email of the user to delete
+     */
+    @Transactional
     public void deleteMyAccount(String email) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with email: " + email));
 
-        // TODO: Добавить логику для удаления связанных данных (магазины, товары и т.д.)
-        // Временно просто удаляем пользователя.
+        // 1. Если пользователь - владелец магазина(ов), удаляем его магазины и связанные файлы
+        if (user.getRole() == User.Role.SHOP) {
+            List<Shop> userShops = shopRepository.findByOwnerId(user.getId());
+            
+            for (Shop shop : userShops) {
+                // Удаляем логотип магазина
+                if (shop.getLogoUrl() != null) {
+                    try {
+                        fileStorageService.deleteFile(shop.getLogoUrl());
+                    } catch (Exception e) {
+                        // Логируем ошибку, но продолжаем удаление
+                        System.err.println("Failed to delete shop logo: " + shop.getLogoUrl());
+                    }
+                }
+                
+                // Удаляем изображения всех товаров магазина
+                if (shop.getItems() != null) {
+                    shop.getItems().forEach(item -> {
+                        if (item.getImages() != null) {
+                            item.getImages().forEach(imageUrl -> {
+                                try {
+                                    fileStorageService.deleteFile(imageUrl);
+                                } catch (Exception e) {
+                                    System.err.println("Failed to delete item image: " + imageUrl);
+                                }
+                            });
+                        }
+                    });
+                }
+                
+                // Удаляем магазин (товары удалятся каскадно благодаря CascadeType.ALL)
+                shopRepository.delete(shop);
+            }
+        }
+
+        // 2. Удаляем аватар пользователя, если есть
+        if (user.getAvatarUrl() != null) {
+            try {
+                fileStorageService.deleteFile(user.getAvatarUrl());
+            } catch (Exception e) {
+                System.err.println("Failed to delete user avatar: " + user.getAvatarUrl());
+            }
+        }
+
+        // 3. Очищаем избранное (разрываем связь many-to-many)
+        user.getFavorites().clear();
+        userRepository.save(user);
+
+        // 4. Удаляем пользователя
         userRepository.delete(user);
     }
 

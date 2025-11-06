@@ -12,6 +12,7 @@ import lombok.NoArgsConstructor;
 import java.time.Instant;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 
 @Data
@@ -47,7 +48,7 @@ public class Shop {
     @Column(nullable = false)
     private Instant createdAt;
 
-    @OneToMany(mappedBy = "shop", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "shop", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<Item> items;
 
     @ManyToMany
@@ -57,4 +58,18 @@ public class Shop {
         inverseJoinColumns = @JoinColumn(name = "category_id")
     )
     private Set<Category> categories = new HashSet<>();
+
+    // ✅ КРИТИЧЕСКИ ВАЖНО: Переопределяем equals и hashCode
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof Shop)) return false;
+        Shop shop = (Shop) o;
+        return id != null && Objects.equals(id, shop.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return getClass().hashCode();
+    }
 }

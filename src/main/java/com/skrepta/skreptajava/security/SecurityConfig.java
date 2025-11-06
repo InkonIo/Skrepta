@@ -34,110 +34,78 @@ public class SecurityConfig {
     private final UserDetailsServiceImpl userDetailsService;
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        http
-                .csrf(AbstractHttpConfigurer::disable)
-                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                .authorizeHttpRequests(auth -> auth
-                        // PUBLIC endpoints - доступны всем без авторизации
-                        // Auth endpoints
-                        .requestMatchers(
-                                "/api/auth/login",
-                                "/api/auth/register",
-                                "/api/auth/forgot-password",
-                                "/api/auth/reset-password"
-                        ).permitAll()
-                        
-                        // Swagger/OpenAPI documentation
-                        .requestMatchers(
-                                "/v3/api-docs/**",
-                                "/swagger-ui/**",
-                                "/swagger-ui.html"
-                        ).permitAll()
-                        
-                        // Health check and error pages
-                        .requestMatchers("/", "/error").permitAll()
-                        
-                        // READ-ONLY PUBLIC endpoints - просмотр доступен всем
-                        .requestMatchers(
-                                "GET",
-                                "/api/shops",
-                                "/api/shops/{id}",
-                                "/api/items",
-                                "/api/items/{id}",
-                                "/api/categories"
-                        ).permitAll()
-                        
-                        // AUTHENTICATED USER endpoints - требуют авторизации
-                        // Favorites (только для авторизованных пользователей)
-                        .requestMatchers("/api/favorites/**").authenticated()
-                        
-                        // Refresh token (только для авторизованных)
-                        .requestMatchers("/api/auth/refresh-token").authenticated()
-                        
-                        // ADMIN endpoints - доступны только админам
-                        // Управление пользователями
-                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                        
-                        // SHOP OWNER / ADMIN endpoints - управление магазинами
-                        .requestMatchers(
-                                "POST",
-                                "/api/shops"
-                        ).authenticated() // В контроллере проверяем роль SHOP_OWNER или ADMIN
-                        
-                        .requestMatchers(
-                                "PUT",
-                                "/api/shops/{id}"
-                        ).authenticated() // В контроллере проверяем владельца или ADMIN
-                        
-                        .requestMatchers(
-                                "DELETE",
-                                "/api/shops/{id}"
-                        ).authenticated() // В контроллере проверяем владельца или ADMIN
-                        
-                        // SHOP OWNER / ADMIN endpoints - управление товарами
-                        .requestMatchers(
-                                "POST",
-                                "/api/shops/{shopId}/items"
-                        ).authenticated() // В контроллере проверяем владельца магазина или ADMIN
-                        
-                        .requestMatchers(
-                                "PUT",
-                                "/api/items/{id}"
-                        ).authenticated() // В контроллере проверяем владельца магазина или ADMIN
-                        
-                        .requestMatchers(
-                                "DELETE",
-                                "/api/items/{id}"
-                        ).authenticated() // В контроллере проверяем владельца магазина или ADMIN
-                        
-                        // ADMIN endpoints - управление категориями
-                        .requestMatchers(
-                                "POST",
-                                "/api/categories"
-                        ).hasRole("ADMIN")
-                        
-                        .requestMatchers(
-                                "PUT",
-                                "/api/categories/{id}"
-                        ).hasRole("ADMIN")
-                        
-                        .requestMatchers(
-                                "DELETE",
-                                "/api/categories/{id}"
-                        ).hasRole("ADMIN")
-                        
-                        // Все остальные запросы требуют аутентификации
-                        .anyRequest().authenticated()
-                )
-                .sessionManagement(session -> session
-                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-                )
-                .authenticationProvider(authenticationProvider())
-                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    http
+            .csrf(AbstractHttpConfigurer::disable)
+            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+            .authorizeHttpRequests(auth -> auth
+                    // PUBLIC endpoints
+                    .requestMatchers(
+                            "/api/auth/login",
+                            "/api/auth/register",
+                            "/api/auth/forgot-password",
+                            "/api/auth/reset-password"
+                    ).permitAll()
+                    
+                    // Swagger/OpenAPI documentation
+                    .requestMatchers(
+                            "/v3/api-docs/**",
+                            "/swagger-ui/**",
+                            "/swagger-ui.html"
+                    ).permitAll()
+                    
+                    // Health check and error pages
+                    .requestMatchers("/", "/error").permitAll()
+                    
+                    // READ-ONLY PUBLIC endpoints
+                    .requestMatchers(
+                            "GET",
+                            "/api/shops",
+                            "/api/shops/{id}",
+                            "/api/items",
+                            "/api/items/{id}",
+                            "/api/categories"
+                    ).permitAll()
+                    
+                    // AUTHENTICATED USER endpoints
+                    // Favorites
+                    .requestMatchers("/api/favorites/**").authenticated()
+                    
+                    // ✅ ДОБАВЬТЕ ЭТУ СТРОКУ - Удаление своего аккаунта
+                    .requestMatchers("DELETE", "/api/auth/me").authenticated()
+                    
+                    // Refresh token
+                    .requestMatchers("/api/auth/refresh-token").authenticated()
+                    
+                    // ADMIN endpoints
+                    .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                    
+                    // SHOP OWNER / ADMIN endpoints - управление магазинами
+                    .requestMatchers("POST", "/api/shops").authenticated()
+                    .requestMatchers("PUT", "/api/shops/{id}").authenticated()
+                    .requestMatchers("DELETE", "/api/shops/{id}").authenticated()
+                    
+                    // SHOP OWNER / ADMIN endpoints - управление товарами
+                    .requestMatchers("POST", "/api/shops/{shopId}/items").authenticated()
+                    .requestMatchers("PUT", "/api/items/{id}").authenticated()
+                    .requestMatchers("DELETE", "/api/items/{id}").authenticated()
+                    
+                    // ADMIN endpoints - управление категориями
+                    .requestMatchers("POST", "/api/categories").hasRole("ADMIN")
+                    .requestMatchers("PUT", "/api/categories/{id}").hasRole("ADMIN")
+                    .requestMatchers("DELETE", "/api/categories/{id}").hasRole("ADMIN")
+                    
+                    // Все остальные запросы требуют аутентификации
+                    .anyRequest().authenticated()
+            )
+            .sessionManagement(session -> session
+                    .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+            )
+            .authenticationProvider(authenticationProvider())
+            .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
-        return http.build();
-    }
+    return http.build();
+}
 
     @Bean
     public AuthenticationProvider authenticationProvider() {
