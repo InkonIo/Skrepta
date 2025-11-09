@@ -4,6 +4,8 @@ import com.skrepta.skreptajava.auth.dto.UserResponse;
 import com.skrepta.skreptajava.auth.entity.User;
 import com.skrepta.skreptajava.auth.exception.ResourceNotFoundException;
 import com.skrepta.skreptajava.auth.repository.UserRepository;
+	import com.skrepta.skreptajava.shop.service.ShopService;
+	import com.skrepta.skreptajava.item.service.ItemService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,6 +18,8 @@ import java.util.stream.Collectors;
 public class AdminService {
 
     private final UserRepository userRepository;
+	    private final ShopService shopService;
+	    private final ItemService itemService;
 
     /**
      * Retrieves all users and maps them to UserResponse DTOs.
@@ -82,9 +86,28 @@ public class AdminService {
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + userId));
         
         // TODO: Добавить логику для удаления связанных данных (магазины, товары и т.д.)
-        // Временно просто удаляем пользователя.
-        userRepository.delete(user);
-    }
+// TODO: Добавить логику для удаления связанных данных (магазины, товары и т.д.)
+	        // Временно просто удаляем пользователя.
+	        userRepository.delete(user);
+	    }
+	
+	    /**
+	     * Deletes a shop by ID (Admin control).
+	     * @param shopId the ID of the shop to delete
+	     */
+	    @Transactional
+	    public void deleteShop(Long shopId) {
+	        shopService.adminDeleteShop(shopId);
+	    }
+	
+	    /**
+	     * Deletes an item by ID (Admin control).
+	     * @param itemId the ID of the item to delete
+	     */
+	    @Transactional
+	    public void deleteItem(Long itemId) {
+	        itemService.adminDeleteItem(itemId);
+	    }
 
     /**
      * Maps a User entity to a UserResponse DTO.

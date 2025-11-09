@@ -6,6 +6,7 @@ import com.skrepta.skreptajava.admin.service.AdminService;
 import com.skrepta.skreptajava.auth.dto.UserResponse;
 import com.skrepta.skreptajava.shop.dto.ShopResponse;
 import com.skrepta.skreptajava.shop.service.ShopService;
+	import com.skrepta.skreptajava.item.service.ItemService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -22,6 +23,7 @@ public class AdminController {
 
     private final AdminService adminService;
     private final ShopService shopService;
+	    private final ItemService itemService;
 
     // === Управление пользователями ===
     
@@ -70,7 +72,21 @@ public class AdminController {
     }
 
     @PutMapping("/shops/{shopId}/reject")
-    public ResponseEntity<ShopResponse> rejectShop(@PathVariable Long shopId) {
-        return ResponseEntity.ok(shopService.rejectShop(shopId));
-    }
-}
+	    public ResponseEntity<ShopResponse> rejectShop(@PathVariable Long shopId) {
+	        return ResponseEntity.ok(shopService.rejectShop(shopId));
+	    }
+	
+	    @DeleteMapping("/shops/{shopId}")
+	    public ResponseEntity<Void> deleteShop(@PathVariable Long shopId) {
+	        adminService.deleteShop(shopId);
+	        return ResponseEntity.noContent().build();
+	    }
+	
+	    // === Управление товарами ===
+	
+	    @DeleteMapping("/items/{itemId}")
+	    public ResponseEntity<Void> deleteItem(@PathVariable Long itemId) {
+	        adminService.deleteItem(itemId);
+	        return ResponseEntity.noContent().build();
+	    }
+	}

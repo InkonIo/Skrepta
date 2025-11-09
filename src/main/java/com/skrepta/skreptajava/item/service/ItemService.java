@@ -137,7 +137,22 @@ public class ItemService {
                 .collect(Collectors.toList());
     }
 
-    // --- Helper Methods ---
+        /**
+	     * Deletes an item without ownership check (for ADMIN).
+	     * @param itemId The ID of the item to delete.
+	     */
+	    @Transactional
+	    public void adminDeleteItem(Long itemId) {
+	        Item item = itemRepository.findById(itemId)
+	                .orElseThrow(() -> new ResourceNotFoundException("Item not found with ID: " + itemId));
+	
+	        // Delete images from storage
+	        item.getImages().forEach(fileStorageService::deleteFile);
+	
+	        itemRepository.delete(item);
+	    }
+	
+	    // --- Helper Methods ---
 
     private User getCurrentUser() {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();

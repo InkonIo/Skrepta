@@ -10,11 +10,14 @@ import com.skrepta.skreptajava.shop.dto.ShopRequest;
 import com.skrepta.skreptajava.shop.dto.ShopResponse;
 import com.skrepta.skreptajava.shop.entity.Shop;
 import com.skrepta.skreptajava.shop.repository.ShopRepository;
+import com.skrepta.skreptajava.item.repository.ItemRepository;
+import com.skrepta.skreptajava.item.entity.Item;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import jakarta.persistence.EntityManager;
 
 import java.io.IOException;
 import java.time.Instant;
@@ -31,17 +34,17 @@ public class ShopService {
     private final UserRepository userRepository;
     private final CategoryRepository categoryRepository;
     private final FileStorageService fileStorageService;
+    private final ItemRepository itemRepository;
+    private final EntityManager entityManager;
 
     @Transactional
     public ShopResponse createShop(ShopRequest request) throws IOException {
         User currentUser = getCurrentUser();
 
-        // Разрешаем создание магазинов пользователям с ролью SHOP или ADMIN
         if (currentUser.getRole() != User.Role.SHOP && currentUser.getRole() != User.Role.ADMIN) {
             throw new AccessDeniedException("Only users with role SHOP or ADMIN can create a shop.");
         }
 
-        // Определяем владельца магазина
         User owner = currentUser;
         if (currentUser.getRole() == User.Role.ADMIN && request.getOwnerId() != null) {
             owner = userRepository.findById(request.getOwnerId())
@@ -82,7 +85,6 @@ public class ShopService {
 
         Set<Category> categories = getCategoriesByIds(request.getCategoryIds());
 
-        // Handle logo file update
         if (request.getLogoFile() != null && !request.getLogoFile().isEmpty()) {
             if (shop.getLogoUrl() != null) {
                 fileStorageService.deleteFile(shop.getLogoUrl());
@@ -110,10 +112,54 @@ public class ShopService {
         User currentUser = getCurrentUser();
         checkPermission(shop, currentUser);
 
+        deleteShopWithItems(shop);
+    }
+
+    @Transactional
+    public void deleteOwnShop() {
+        User currentUser = getCurrentUser();
+        List<Shop> shops = shopRepository.findByOwnerId(currentUser.getId());
+        Shop shop = shops.stream().findFirst()
+            .orElseThrow(() -> new ResourceNotFoundException("Shop not found for current user."));
+
+        deleteShopWithItems(shop);
+    }
+
+    @Transactional
+    public void adminDeleteShop(Long shopId) {
+        Shop shop = shopRepository.findById(shopId)
+                .orElseThrow(() -> new ResourceNotFoundException("Shop not found with ID: " + shopId));
+
+        deleteShopWithItems(shop);
+    }
+
+    // ✅ ВСПОМОГАТЕЛЬНЫЙ МЕТОД: Удаление магазина со всеми связями
+    private void deleteShopWithItems(Shop shop) {
+        List<Item> items = itemRepository.findByShopId(shop.getId());
+        
+        for (Item item : items) {
+            // ✅ Удаляем записи из таблицы user_favorites через SQL
+            entityManager.createNativeQuery("DELETE FROM user_favorites WHERE item_id = :itemId")
+                    .setParameter("itemId", item.getId())
+                    .executeUpdate();
+            
+            // Удаляем изображения товара
+            if (item.getImages() != null) {
+                for (String imageUrl : item.getImages()) {
+                    fileStorageService.deleteFile(imageUrl);
+                }
+            }
+            
+            // Удаляем товар
+            itemRepository.delete(item);
+        }
+
+        // Удаляем логотип магазина
         if (shop.getLogoUrl() != null) {
             fileStorageService.deleteFile(shop.getLogoUrl());
         }
 
+        // Удаляем магазин
         shopRepository.delete(shop);
     }
 
@@ -125,14 +171,21 @@ public class ShopService {
     }
 
     @Transactional(readOnly = true)
+    public ShopResponse getMyShop() {
+        User currentUser = getCurrentUser();
+        List<Shop> shops = shopRepository.findByOwnerId(currentUser.getId());
+        Shop shop = shops.stream().findFirst()
+            .orElseThrow(() -> new ResourceNotFoundException("Shop not found for current user."));
+        return mapToResponse(shop);
+    }
+
+    @Transactional(readOnly = true)
     public List<ShopResponse> getAllApprovedShops() {
         return shopRepository.findAll().stream()
                 .filter(Shop::isApproved)
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
     }
-
-    // === Админские методы ===
 
     @Transactional(readOnly = true)
     public List<ShopResponse> getAllShops() {
@@ -166,8 +219,6 @@ public class ShopService {
         shop.setApproved(false);
         return mapToResponse(shopRepository.save(shop));
     }
-
-    // === Helper Methods ===
 
     private User getCurrentUser() {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();

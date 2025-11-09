@@ -10,6 +10,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -48,7 +49,16 @@ public class CategoryController {
         return ResponseEntity.noContent().build();
     }
 
-    @PatchMapping("/{id}/status")
+@PostMapping("/{id}/icon")
+@PreAuthorize("hasRole('ADMIN')")
+public ResponseEntity<CategoryResponse> uploadCategoryIcon(
+        @PathVariable Long id,
+        @RequestParam("file") MultipartFile file
+) {
+    return ResponseEntity.ok(categoryService.uploadCategoryIcon(id, file));
+}
+
+@PatchMapping("/{id}/status")
 @PreAuthorize("hasRole('ADMIN')")
 public ResponseEntity<CategoryResponse> updateCategoryStatus(
         @PathVariable Long id,
