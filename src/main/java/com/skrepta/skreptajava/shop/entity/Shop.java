@@ -59,6 +59,10 @@ public class Shop {
     )
     private Set<Category> categories = new HashSet<>();
 
+    // ✅ ИСПРАВЛЕНО: Заменено 'int' на 'Integer' для поддержки NULL из базы данных.
+    @Column(name = "favorites_count")
+    private Integer favoritesCount = 0; // Теперь может быть null, если придет из БД
+    
     // ✅ КРИТИЧЕСКИ ВАЖНО: Переопределяем equals и hashCode
     @Override
     public boolean equals(Object o) {

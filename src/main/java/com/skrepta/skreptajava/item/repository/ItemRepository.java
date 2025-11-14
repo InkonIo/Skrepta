@@ -8,5 +8,9 @@ import java.util.List;
 
 @Repository
 public interface ItemRepository extends JpaRepository<Item, Long> {
+    // ✅ Получить все товары магазина
     List<Item> findByShopId(Long shopId);
+    
+    // ✅ Получить только активные товары магазина (альтернатива)
+    List<Item> findByShopIdAndIsActive(Long shopId, boolean isActive);
 }

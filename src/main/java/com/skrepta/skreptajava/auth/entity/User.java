@@ -9,6 +9,8 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
+import com.skrepta.skreptajava.shop.entity.Shop;
+
 import java.time.Instant;
 import java.util.Collection;
 import java.util.HashSet;
@@ -62,6 +64,23 @@ public class User implements UserDetails {
 
     @Column(nullable = false)
     private Instant createdAt;
+
+    @ManyToMany
+    @JoinTable(
+        name = "user_favorite_shops",
+        joinColumns = @JoinColumn(name = "user_id"),
+        inverseJoinColumns = @JoinColumn(name = "shop_id")
+    )
+    private Set<Shop> favoriteShops = new HashSet<>();
+    
+    // Геттеры и сеттеры
+    public Set<Shop> getFavoriteShops() {
+        return favoriteShops;
+    }
+    
+    public void setFavoriteShops(Set<Shop> favoriteShops) {
+        this.favoriteShops = favoriteShops;
+    }
 
     // --- UserDetails methods ---
 

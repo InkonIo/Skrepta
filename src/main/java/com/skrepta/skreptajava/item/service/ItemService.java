@@ -151,6 +151,25 @@ public class ItemService {
 	
 	        itemRepository.delete(item);
 	    }
+
+        /**
+            * Retrieves all active items for a specific shop.
+            * @param shopId The ID of the shop.
+            * @return A list of active items for the shop.
+            */
+        @Transactional(readOnly = true)
+        public List<ItemResponse> getItemsByShopId(Long shopId) {
+            Shop shop = shopRepository.findById(shopId)
+                .orElseThrow(() -> new ResourceNotFoundException("Shop not found with id: " + shopId));
+
+            // Показываем только активные товары для публичного просмотра
+            List<Item> items = itemRepository.findByShopId(shopId);
+
+            return items.stream()
+                .filter(Item::isActive) // ✅ Используем isActive() вместо getStatus()
+                .map(this::mapToResponse) // ✅ Используем правильное имя метода
+                .collect(Collectors.toList());
+        }
 	
 	    // --- Helper Methods ---
 

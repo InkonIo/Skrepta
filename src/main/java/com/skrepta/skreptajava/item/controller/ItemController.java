@@ -32,6 +32,12 @@ public class ItemController {
         return ResponseEntity.ok(itemService.getItemById(id));
     }
 
+    // ✅ NEW: Public endpoint: Get all items for a specific shop
+    @GetMapping("/shops/{shopId}/items")
+    public ResponseEntity<List<ItemResponse>> getItemsByShop(@PathVariable Long shopId) {
+        return ResponseEntity.ok(itemService.getItemsByShopId(shopId));
+    }
+
     // SHOP/ADMIN endpoint: Create a new item for a specific shop
     @PostMapping("/shops/{shopId}/items")
     @PreAuthorize("hasRole('SHOP') or hasRole('ADMIN')")

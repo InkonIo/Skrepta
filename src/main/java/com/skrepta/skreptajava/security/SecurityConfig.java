@@ -62,6 +62,7 @@ public class SecurityConfig {
                                 "GET",
                                 "/api/shops",
                                 "/api/shops/{id}",
+                                "/api/shops/{shopId}/items",
                                 "/api/items",
                                 "/api/items/{id}",
                                 "/api/categories"
@@ -70,6 +71,8 @@ public class SecurityConfig {
                         // AUTHENTICATED USER endpoints
                         // Favorites
                         .requestMatchers("/api/favorites/**").authenticated()
+
+                        .requestMatchers("/api/shop-favorites/**").authenticated()
                         
                         // ✅ ДОБАВЬТЕ ЭТУ СТРОКУ - Удаление своего аккаунта
                         .requestMatchers("DELETE", "/api/auth/me").authenticated()

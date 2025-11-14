@@ -254,6 +254,7 @@ public class ShopService {
                 .rating(shop.getRating())
                 .isApproved(shop.isApproved())
                 .createdAt(shop.getCreatedAt())
+                .favoritesCount(shop.getFavoritesCount())
                 .categories(shop.getCategories().stream()
                         .map(c -> com.skrepta.skreptajava.category.dto.CategoryResponse.builder()
                                 .id(c.getId())
