@@ -72,6 +72,9 @@ public class SecurityConfig {
                         // Favorites
                         .requestMatchers("/api/favorites/**").authenticated()
 
+                        // ✅ НОВОЕ: Публичный эндпоинт для увеличения просмотров
+                        .requestMatchers("POST", "/api/items/{id}/view").permitAll()
+
                         .requestMatchers("/api/shop-favorites/**").authenticated()
                         
                         // ✅ ДОБАВЬТЕ ЭТУ СТРОКУ - Удаление своего аккаунта

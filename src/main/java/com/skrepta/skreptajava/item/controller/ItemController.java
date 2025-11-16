@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api")
@@ -64,5 +65,12 @@ public class ItemController {
     public ResponseEntity<Void> deleteItem(@PathVariable Long id) {
         itemService.deleteItem(id);
         return ResponseEntity.noContent().build();
+    }
+
+    // Public endpoint: Increment item view count
+    @PostMapping("/items/{id}/view")
+    public ResponseEntity<Map<String, String>> incrementItemView(@PathVariable Long id) {
+        itemService.incrementItemView(id);
+        return ResponseEntity.ok(Map.of("message", "View incremented successfully"));
     }
 }

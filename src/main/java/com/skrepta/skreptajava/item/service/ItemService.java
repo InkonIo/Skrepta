@@ -171,8 +171,21 @@ public class ItemService {
                 .collect(Collectors.toList());
         }
 	
-	    // --- Helper Methods ---
 
+        /**
+     * Increases view count for an item.
+     * @param itemId The ID of the item.
+     */
+    @Transactional
+    public void incrementItemView(Long itemId) {
+        Item item = itemRepository.findById(itemId)
+                .orElseThrow(() -> new ResourceNotFoundException("Item not found with ID: " + itemId));
+        
+        item.setViews(item.getViews() + 1);
+        itemRepository.save(item);
+    }
+	
+    // --- Helper Methods ---
     private User getCurrentUser() {
         String email = SecurityContextHolder.getContext().getAuthentication().getName();
         return userRepository.findByEmail(email)
