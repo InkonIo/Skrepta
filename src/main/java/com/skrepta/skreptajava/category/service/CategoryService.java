@@ -7,7 +7,7 @@ import com.skrepta.skreptajava.category.dto.CategoryStatusRequest;
 import com.skrepta.skreptajava.category.entity.Category;
 import com.skrepta.skreptajava.category.repository.CategoryRepository;
 import com.skrepta.skreptajava.shop.entity.Shop;
-
+import com.skrepta.skreptajava.smartsearch.service.IndexingService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -25,13 +25,13 @@ public class CategoryService {
 
     private final CategoryRepository categoryRepository;
     private final CategoryIconService categoryIconService;
+    private final IndexingService indexingService; // ✅ ДОБАВЛЕНО
 
     @Transactional
     public CategoryResponse uploadCategoryIcon(Long categoryId, MultipartFile file) {
         Category category = categoryRepository.findById(categoryId)
                 .orElseThrow(() -> new ResourceNotFoundException("Category not found with ID: " + categoryId));
 
-        // Удаляем старую иконку, если она есть
         if (category.getIcon() != null && !category.getIcon().isEmpty()) {
             try {
                 categoryIconService.deleteCategoryIcon(category.getIcon());
@@ -40,7 +40,6 @@ public class CategoryService {
             }
         }
 
-        // Загружаем новую иконку
         String iconUrl;
         try {
             iconUrl = categoryIconService.uploadCategoryIcon(file, categoryId);
@@ -49,9 +48,18 @@ public class CategoryService {
             throw new RuntimeException("Failed to upload category icon", e);
         }
 
-        // Обновляем URL иконки в базе
         category.setIcon(iconUrl);
-        return mapToResponse(categoryRepository.save(category));
+        Category savedCategory = categoryRepository.save(category);
+        
+        // ✅ ПЕРЕИНДЕКСАЦИЯ ПОСЛЕ ОБНОВЛЕНИЯ ИКОНКИ
+        try {
+            indexingService.indexCategory(savedCategory);
+            log.info("Category {} re-indexed after icon update", savedCategory.getId());
+        } catch (Exception e) {
+            log.error("Failed to re-index category {}: {}", savedCategory.getId(), e.getMessage());
+        }
+        
+        return mapToResponse(savedCategory);
     }
 
     @Transactional
@@ -62,10 +70,8 @@ public class CategoryService {
 
         Category parent = getParentCategory(request.getParentId());
         
-        // Генерируем slug
         String slug = generateSlug(request.getName());
         
-        // Проверяем уникальность slug, если занят - добавляем timestamp
         if (categoryRepository.findBySlug(slug).isPresent()) {
             slug = slug + "-" + System.currentTimeMillis();
             log.warn("Slug collision detected, using: {}", slug);
@@ -80,7 +86,17 @@ public class CategoryService {
                 .isActive(request.getIsActive())
                 .build();
 
-        return mapToResponse(categoryRepository.save(category));
+        Category savedCategory = categoryRepository.save(category);
+        
+        // ✅ АВТОМАТИЧЕСКАЯ ИНДЕКСАЦИЯ
+        try {
+            indexingService.indexCategory(savedCategory);
+            log.info("Category {} automatically indexed for search", savedCategory.getId());
+        } catch (Exception e) {
+            log.error("Failed to auto-index category {}: {}", savedCategory.getId(), e.getMessage());
+        }
+
+        return mapToResponse(savedCategory);
     }
 
     @Transactional
@@ -101,28 +117,31 @@ public class CategoryService {
         category.setPosition(request.getPosition());
         category.setIsActive(request.getIsActive());
 
-        return mapToResponse(categoryRepository.save(category));
+        Category updatedCategory = categoryRepository.save(category);
+        
+        // ✅ ПЕРЕИНДЕКСАЦИЯ ПОСЛЕ ОБНОВЛЕНИЯ
+        try {
+            indexingService.indexCategory(updatedCategory);
+            log.info("Category {} re-indexed after update", updatedCategory.getId());
+        } catch (Exception e) {
+            log.error("Failed to re-index category {}: {}", updatedCategory.getId(), e.getMessage());
+        }
+
+        return mapToResponse(updatedCategory);
     }
-
-
 
     @Transactional
     public void deleteCategory(Long id) {
         Category category = categoryRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Category not found with ID: " + id));
 
-        // Если есть привязанные магазины, очищаем связь, чтобы не нарушать целостность БД
-        // Если есть привязанные магазины, мы должны удалить категорию из коллекции магазинов
-        // Это необходимо, потому что Shop является владельцем связи (нет mappedBy)
         if (!category.getShops().isEmpty()) {
             log.warn("Category {} has {} associated shops. Removing category from shops' collections before deletion.", category.getId(), category.getShops().size());
             for (Shop shop : category.getShops()) {
                 shop.getCategories().remove(category);
             }
-            // Очистка коллекции в Category не нужна, так как Shop является владельцем
         }
 
-        // Удаляем иконку из S3 перед удалением категории
         if (category.getIcon() != null && !category.getIcon().isEmpty()) {
             try {
                 categoryIconService.deleteCategoryIcon(category.getIcon());
@@ -155,9 +174,17 @@ public class CategoryService {
                 .orElseThrow(() -> new ResourceNotFoundException("Category not found with ID: " + id));
 
         category.setIsActive(request.getIsActive());
-        categoryRepository.save(category);
+        Category savedCategory = categoryRepository.save(category);
+        
+        // ✅ ПЕРЕИНДЕКСАЦИЯ ПОСЛЕ ИЗМЕНЕНИЯ СТАТУСА
+        try {
+            indexingService.indexCategory(savedCategory);
+            log.info("Category {} re-indexed after status change", savedCategory.getId());
+        } catch (Exception e) {
+            log.error("Failed to re-index category {}: {}", savedCategory.getId(), e.getMessage());
+        }
 
-        return CategoryResponse.fromEntity(category);
+        return CategoryResponse.fromEntity(savedCategory);
     }
 
     private Category getParentCategory(Long parentId) {
@@ -168,10 +195,6 @@ public class CategoryService {
                 .orElseThrow(() -> new ResourceNotFoundException("Parent category not found with ID: " + parentId));
     }
 
-    /**
-     * ✅ ИСПРАВЛЕННАЯ ГЕНЕРАЦИЯ SLUG С ТРАНСЛИТЕРАЦИЕЙ
-     * Теперь русские буквы преобразуются в латиницу, а не удаляются
-     */
     private String generateSlug(String name) {
         if (name == null || name.trim().isEmpty()) {
             throw new IllegalArgumentException("Name cannot be empty");
@@ -180,7 +203,6 @@ public class CategoryService {
         String translit = name
                 .toLowerCase()
                 .trim()
-                // Русские буквы → латиница
                 .replace("а", "a").replace("б", "b").replace("в", "v")
                 .replace("г", "g").replace("д", "d").replace("е", "e")
                 .replace("ё", "e").replace("ж", "zh").replace("з", "z")
@@ -192,22 +214,15 @@ public class CategoryService {
                 .replace("ч", "ch").replace("ш", "sh").replace("щ", "shch")
                 .replace("ъ", "").replace("ы", "y").replace("ь", "")
                 .replace("э", "e").replace("ю", "yu").replace("я", "ya")
-                // Казахские буквы
                 .replace("ә", "a").replace("ғ", "g").replace("қ", "k")
                 .replace("ң", "n").replace("ө", "o").replace("ұ", "u")
                 .replace("ү", "u").replace("һ", "h").replace("і", "i")
-                // Украинские буквы
                 .replace("є", "ye").replace("і", "i").replace("ї", "yi").replace("ґ", "g");
 
-        // Все не-буквы/цифры → дефис
         translit = translit.replaceAll("[^a-z0-9]+", "-");
-        
-        // Убираем дефисы в начале и конце
         translit = translit.replaceAll("^-+|-+$", "");
 
-        // Если после всех преобразований получилась пустая строка
         if (translit.isEmpty()) {
-            // Генерируем slug на основе времени + случайное число
             translit = "category-" + System.currentTimeMillis() + "-" + (int)(Math.random() * 1000);
             log.warn("Generated fallback slug for name '{}': {}", name, translit);
         }

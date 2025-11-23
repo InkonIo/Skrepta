@@ -1,15 +1,18 @@
 package com.skrepta.skreptajava.item.entity;
 
+import com.skrepta.skreptajava.config.VectorType;
 import com.skrepta.skreptajava.shop.entity.Shop;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import com.pgvector.PGvector;
 
 import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
+import org.hibernate.annotations.Type;
 
 @Data
 @Builder
@@ -53,7 +56,11 @@ public class Item {
 
     private Instant updatedAt;
 
-    // ✅ КРИТИЧЕСКИ ВАЖНО: Переопределяем equals и hashCode
+    // ✅ НОВОЕ: Поле для хранения вектора (embedding)
+    @Type(VectorType.class)
+    @Column(columnDefinition = "vector(1536)")
+    private PGvector embedding;
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

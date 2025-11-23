@@ -12,7 +12,9 @@ import com.skrepta.skreptajava.shop.entity.Shop;
 import com.skrepta.skreptajava.shop.repository.ShopRepository;
 import com.skrepta.skreptajava.item.repository.ItemRepository;
 import com.skrepta.skreptajava.item.entity.Item;
+import com.skrepta.skreptajava.smartsearch.service.IndexingService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -26,6 +28,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ShopService {
@@ -36,6 +39,7 @@ public class ShopService {
     private final FileStorageService fileStorageService;
     private final ItemRepository itemRepository;
     private final EntityManager entityManager;
+    private final IndexingService indexingService; // ✅ ДОБАВЛЕНО
 
     @Transactional
     public ShopResponse createShop(ShopRequest request) throws IOException {
@@ -72,7 +76,17 @@ public class ShopService {
                 .categories(categories)
                 .build();
 
-        return mapToResponse(shopRepository.save(shop));
+        Shop savedShop = shopRepository.save(shop);
+        
+        // ✅ АВТОМАТИЧЕСКАЯ ИНДЕКСАЦИЯ
+        try {
+            indexingService.indexShop(savedShop);
+            log.info("Shop {} automatically indexed for search", savedShop.getId());
+        } catch (Exception e) {
+            log.error("Failed to auto-index shop {}: {}", savedShop.getId(), e.getMessage());
+        }
+
+        return mapToResponse(savedShop);
     }
 
     @Transactional
@@ -101,7 +115,17 @@ public class ShopService {
         shop.setAddress(request.getAddress());
         shop.setCategories(categories);
 
-        return mapToResponse(shopRepository.save(shop));
+        Shop updatedShop = shopRepository.save(shop);
+        
+        // ✅ ПЕРЕИНДЕКСАЦИЯ ПОСЛЕ ОБНОВЛЕНИЯ
+        try {
+            indexingService.indexShop(updatedShop);
+            log.info("Shop {} re-indexed after update", updatedShop.getId());
+        } catch (Exception e) {
+            log.error("Failed to re-index shop {}: {}", updatedShop.getId(), e.getMessage());
+        }
+
+        return mapToResponse(updatedShop);
     }
 
     @Transactional
@@ -133,33 +157,27 @@ public class ShopService {
         deleteShopWithItems(shop);
     }
 
-    // ✅ ВСПОМОГАТЕЛЬНЫЙ МЕТОД: Удаление магазина со всеми связями
     private void deleteShopWithItems(Shop shop) {
         List<Item> items = itemRepository.findByShopId(shop.getId());
         
         for (Item item : items) {
-            // ✅ Удаляем записи из таблицы user_favorites через SQL
             entityManager.createNativeQuery("DELETE FROM user_favorites WHERE item_id = :itemId")
                     .setParameter("itemId", item.getId())
                     .executeUpdate();
             
-            // Удаляем изображения товара
             if (item.getImages() != null) {
                 for (String imageUrl : item.getImages()) {
                     fileStorageService.deleteFile(imageUrl);
                 }
             }
             
-            // Удаляем товар
             itemRepository.delete(item);
         }
 
-        // Удаляем логотип магазина
         if (shop.getLogoUrl() != null) {
             fileStorageService.deleteFile(shop.getLogoUrl());
         }
 
-        // Удаляем магазин
         shopRepository.delete(shop);
     }
 
@@ -208,7 +226,17 @@ public class ShopService {
                 .orElseThrow(() -> new ResourceNotFoundException("Shop not found with ID: " + shopId));
         
         shop.setApproved(true);
-        return mapToResponse(shopRepository.save(shop));
+        Shop approvedShop = shopRepository.save(shop);
+        
+        // ✅ ПЕРЕИНДЕКСАЦИЯ ПОСЛЕ ОДОБРЕНИЯ
+        try {
+            indexingService.indexShop(approvedShop);
+            log.info("Approved shop {} re-indexed", approvedShop.getId());
+        } catch (Exception e) {
+            log.error("Failed to re-index shop {}: {}", approvedShop.getId(), e.getMessage());
+        }
+        
+        return mapToResponse(approvedShop);
     }
 
     @Transactional

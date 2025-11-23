@@ -60,6 +60,28 @@
             <artifactId>spring-boot-starter-mail</artifactId>
         </dependency>
 
+        <!-- OpenAI Java Client -->
+        <dependency>
+            <groupId>com.theokanning.openai-gpt3-java</groupId>
+            <artifactId>service</artifactId>
+            <version>0.18.2</version>
+        </dependency>
+
+        <!-- pgvector для PostgreSQL -->
+        <dependency>
+            <groupId>com.pgvector</groupId>
+            <artifactId>pgvector</artifactId>
+            <version>0.1.4</version>
+        </dependency>
+
+        <!-- HTTP Client для OpenAI -->
+        <dependency>
+            <groupId>com.squareup.okhttp3</groupId>
+            <artifactId>okhttp</artifactId>
+            <version>4.12.0</version>
+        </dependency>
+
+    
         <dependency>
     <groupId>com.amazonaws</groupId>
     <artifactId>aws-java-sdk-s3</artifactId>
@@ -72,15 +94,12 @@
     <version>1.12.742</version>
 </dependency>
 
-
-
-
-        <!-- PostgreSQL -->
         <dependency>
-            <groupId>org.postgresql</groupId>
-            <artifactId>postgresql</artifactId>
-            <scope>runtime</scope>
-        </dependency>
+    <groupId>org.postgresql</groupId>
+    <artifactId>postgresql</artifactId>
+    <version>42.7.3</version>
+</dependency>
+
 
         <!-- JWT -->
         <dependency>
@@ -134,6 +153,12 @@
     		<artifactId>spring-boot-starter-test</artifactId>
     		<scope>test</scope>
 		</dependency>
+
+        <dependency>
+            <groupId>org.hibernate.orm</groupId>
+            <artifactId>hibernate-core</artifactId>
+            <version>6.2.7.Final</version>
+        </dependency>
 
     </dependencies>
 

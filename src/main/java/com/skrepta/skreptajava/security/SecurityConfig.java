@@ -44,7 +44,8 @@ public class SecurityConfig {
                                 "/api/auth/login",
                                 "/api/auth/register",
                                 "/api/auth/forgot-password",
-                                "/api/auth/reset-password"
+                                "/api/auth/reset-password",
+                                "/api/search/test"
                         ).permitAll()
                         
                         // Swagger/OpenAPI documentation
@@ -68,16 +69,26 @@ public class SecurityConfig {
                                 "/api/categories"
                         ).permitAll()
                         
+                        // ✅ НОВОЕ: Публичный поиск (GET и POST)
+                        .requestMatchers(
+                                "GET",
+                                "/api/search"
+                        ).permitAll()
+                        .requestMatchers(
+                                "POST",
+                                "/api/search"
+                        ).permitAll()
+                        
                         // AUTHENTICATED USER endpoints
                         // Favorites
                         .requestMatchers("/api/favorites/**").authenticated()
 
-                        // ✅ НОВОЕ: Публичный эндпоинт для увеличения просмотров
+                        // Публичный эндпоинт для увеличения просмотров
                         .requestMatchers("POST", "/api/items/{id}/view").permitAll()
 
                         .requestMatchers("/api/shop-favorites/**").authenticated()
                         
-                        // ✅ ДОБАВЬТЕ ЭТУ СТРОКУ - Удаление своего аккаунта
+                        // Удаление своего аккаунта
                         .requestMatchers("DELETE", "/api/auth/me").authenticated()
                         
                         // Refresh token
@@ -86,12 +97,15 @@ public class SecurityConfig {
                         // ADMIN endpoints
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         
-                        // SHOP OWNER / ADMIN endpoints - управление магазинами (доступно владельцу магазина и ADMIN)
+                        // ✅ НОВОЕ: Админские эндпоинты для переиндексации
+                        .requestMatchers("/api/search/admin/**").hasRole("ADMIN")
+                        
+                        // SHOP OWNER / ADMIN endpoints - управление магазинами
                         .requestMatchers("POST", "/api/shops").authenticated()
                         .requestMatchers("PUT", "/api/shops/{id}").authenticated()
                         .requestMatchers("DELETE", "/api/shops/{id}").authenticated()
                         
-                        // SHOP OWNER / ADMIN endpoints - управление товарами (доступно владельцу магазина и ADMIN)
+                        // SHOP OWNER / ADMIN endpoints - управление товарами
                         .requestMatchers("POST", "/api/shops/{shopId}/items").authenticated()
                         .requestMatchers("PUT", "/api/items/{id}").authenticated()
                         .requestMatchers("DELETE", "/api/items/{id}").authenticated()
@@ -102,7 +116,7 @@ public class SecurityConfig {
                         .requestMatchers("PATCH", "/api/categories/{id}/status").hasRole("ADMIN")
                         .requestMatchers("DELETE", "/api/categories/{id}").hasRole("ADMIN")
                         
-                        // ✅ НОВОЕ: Загрузка иконки категории (только ADMIN)
+                        // Загрузка иконки категории (только ADMIN)
                         .requestMatchers("POST", "/api/categories/{id}/icon").hasRole("ADMIN")
                         
                         // Все остальные запросы требуют аутентификации

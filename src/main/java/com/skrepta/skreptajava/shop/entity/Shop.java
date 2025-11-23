@@ -2,19 +2,21 @@ package com.skrepta.skreptajava.shop.entity;
 
 import com.skrepta.skreptajava.auth.entity.User;
 import com.skrepta.skreptajava.category.entity.Category;
+import com.skrepta.skreptajava.config.VectorType;
 import com.skrepta.skreptajava.item.entity.Item;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import com.pgvector.PGvector;
 
 import java.time.Instant;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
-
+import org.hibernate.annotations.Type;
 @Data
 @Builder
 @NoArgsConstructor
@@ -59,11 +61,14 @@ public class Shop {
     )
     private Set<Category> categories = new HashSet<>();
 
-    // ✅ ИСПРАВЛЕНО: Заменено 'int' на 'Integer' для поддержки NULL из базы данных.
     @Column(name = "favorites_count")
-    private Integer favoritesCount = 0; // Теперь может быть null, если придет из БД
+    private Integer favoritesCount = 0;
     
-    // ✅ КРИТИЧЕСКИ ВАЖНО: Переопределяем equals и hashCode
+    // ✅ НОВОЕ: Поле для хранения вектора (embedding)
+    @Type(VectorType.class)
+@Column(columnDefinition = "vector(1536)")
+private PGvector embedding;
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

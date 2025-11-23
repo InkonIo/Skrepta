@@ -1,17 +1,20 @@
 package com.skrepta.skreptajava.category.entity;
 
+import com.skrepta.skreptajava.config.VectorType;
 import com.skrepta.skreptajava.shop.entity.Shop;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import com.pgvector.PGvector;
 
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import org.hibernate.annotations.Type;
 
 @Data
 @Builder
@@ -48,7 +51,11 @@ public class Category {
     @ManyToMany(mappedBy = "categories")
     private Set<Shop> shops = new HashSet<>();
 
-    // ✅ КРИТИЧЕСКИ ВАЖНО: Переопределяем equals и hashCode
+    // ✅ НОВОЕ: Поле для хранения вектора (embedding)
+   @Type(VectorType.class)
+    @Column(columnDefinition = "vector(1536)")
+    private PGvector embedding;
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
