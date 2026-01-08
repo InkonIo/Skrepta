@@ -3,6 +3,7 @@ package com.skrepta.skreptajava.smartsearch.controller;
 import com.pgvector.PGvector;
 import com.skrepta.skreptajava.smartsearch.dto.SearchRequest;
 import com.skrepta.skreptajava.smartsearch.dto.SearchResponse;
+import com.skrepta.skreptajava.smartsearch.service.EmbeddingCacheService;
 import com.skrepta.skreptajava.smartsearch.service.IndexingService;
 import com.skrepta.skreptajava.smartsearch.service.SearchService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -27,6 +28,7 @@ public class SearchController {
 
     private final SearchService searchService;
     private final IndexingService indexingService;
+    private final EmbeddingCacheService embeddingCacheService;
 
     /**
      * Основной эндпоинт для поиска
@@ -190,4 +192,34 @@ public ResponseEntity<Map<String, Object>> testSetup() {
     
     return ResponseEntity.ok(status);
 }
+
+/**
+     * Получить статистику кэша (ADMIN only)
+     */
+    @GetMapping("/admin/cache-stats")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Get cache statistics")
+    public ResponseEntity<Map<String, Object>> getCacheStats() {
+        var stats = embeddingCacheService.getStats();
+        
+        Map<String, Object> response = new HashMap<>();
+        response.put("cache_size", stats.size());
+        response.put("hit_rate", String.format("%.2f%%", stats.hitRate() * 100));
+        response.put("hit_count", stats.hitCount());
+        response.put("miss_count", stats.missCount());
+        response.put("total_requests", stats.hitCount() + stats.missCount());
+        
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Очистить кэш embeddings (ADMIN only)
+     */
+    @PostMapping("/admin/clear-cache")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Clear embedding cache")
+    public ResponseEntity<String> clearCache() {
+        embeddingCacheService.clearCache();
+        return ResponseEntity.ok("Cache cleared successfully");
+    }
 }

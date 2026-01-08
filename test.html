@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<body>
+<h2>Test Search</h2>
+<input id="query" value="ноутбук" />
+<button onclick="search()">Search</button>
+<pre id="result"></pre>
+
+<script>
+async function search() {
+  const query = document.getElementById('query').value;
+  const response = await fetch(`http://localhost:8080/api/search?query=${encodeURIComponent(query)}&limit=5`);
+  const data = await response.json();
+  document.getElementById('result').textContent = JSON.stringify(data, null, 2);
+}
+</script>
+</body>
+</html>
