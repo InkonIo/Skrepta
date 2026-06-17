@@ -3,6 +3,8 @@ package com.skrepta.skreptajava.item.service;
 import com.skrepta.skreptajava.auth.entity.User;
 import com.skrepta.skreptajava.auth.exception.ResourceNotFoundException;
 import com.skrepta.skreptajava.auth.repository.UserRepository;
+import com.skrepta.skreptajava.category.entity.Category;
+import com.skrepta.skreptajava.category.repository.CategoryRepository;
 import com.skrepta.skreptajava.config.FileStorageService;
 import com.skrepta.skreptajava.item.dto.ItemRequest;
 import com.skrepta.skreptajava.item.dto.ItemResponse;
@@ -33,9 +35,10 @@ public class ItemService {
     private final ItemRepository itemRepository;
     private final ShopRepository shopRepository;
     private final UserRepository userRepository;
+    private final CategoryRepository categoryRepository;
     private final FileStorageService fileStorageService;
     private final ShopService shopService;
-    private final IndexingService indexingService; // ✅ ДОБАВЛЕНО
+    private final IndexingService indexingService;
 
     @Transactional
     public ItemResponse createItem(Long shopId, ItemRequest request) throws IOException {
@@ -45,12 +48,17 @@ public class ItemService {
         User currentUser = getCurrentUser();
         checkShopOwnership(shop, currentUser);
 
+        Category category = categoryRepository.findById(request.getCategoryId())
+                .orElseThrow(() -> new ResourceNotFoundException("Category not found with ID: " + request.getCategoryId()));
+
         List<String> imageUrls = uploadImages(request.getImageFiles());
 
         Item item = Item.builder()
                 .shop(shop)
                 .title(request.getTitle())
                 .description(request.getDescription())
+                .price(request.getPrice())
+                .category(category)
                 .images(imageUrls)
                 .tags(request.getTags())
                 .city(request.getCity())
@@ -60,7 +68,7 @@ public class ItemService {
                 .build();
 
         Item savedItem = itemRepository.save(item);
-        
+
         // ✅ АВТОМАТИЧЕСКАЯ ИНДЕКСАЦИЯ
         try {
             indexingService.indexItem(savedItem);
@@ -86,14 +94,19 @@ public class ItemService {
             item.setImages(newImageUrls);
         }
 
+        Category category = categoryRepository.findById(request.getCategoryId())
+                .orElseThrow(() -> new ResourceNotFoundException("Category not found with ID: " + request.getCategoryId()));
+
         item.setTitle(request.getTitle());
         item.setDescription(request.getDescription());
+        item.setPrice(request.getPrice());
+        item.setCategory(category);
         item.setTags(request.getTags());
         item.setCity(request.getCity());
         item.setUpdatedAt(Instant.now());
 
         Item updatedItem = itemRepository.save(item);
-        
+
         // ✅ ПЕРЕИНДЕКСАЦИЯ ПОСЛЕ ОБНОВЛЕНИЯ
         try {
             indexingService.indexItem(updatedItem);
@@ -202,6 +215,9 @@ public class ItemService {
                 .shop(shopService.getShopById(item.getShop().getId()))
                 .title(item.getTitle())
                 .description(item.getDescription())
+                .price(item.getPrice())
+                .categoryId(item.getCategory() != null ? item.getCategory().getId() : null)
+                .categoryName(item.getCategory() != null ? item.getCategory().getName() : null)
                 .images(item.getImages())
                 .tags(item.getTags())
                 .city(item.getCity())

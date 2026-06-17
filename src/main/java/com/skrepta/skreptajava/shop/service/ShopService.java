@@ -39,7 +39,7 @@ public class ShopService {
     private final FileStorageService fileStorageService;
     private final ItemRepository itemRepository;
     private final EntityManager entityManager;
-    private final IndexingService indexingService; // ✅ ДОБАВЛЕНО
+    private final IndexingService indexingService;
 
     @Transactional
     public ShopResponse createShop(ShopRequest request) throws IOException {
@@ -74,11 +74,11 @@ public class ShopService {
                 .createdAt(Instant.now())
                 .isApproved(currentUser.getRole() == User.Role.ADMIN)
                 .categories(categories)
+                .favoritesCount(0) // ← явно инициализируем 0
                 .build();
 
         Shop savedShop = shopRepository.save(shop);
-        
-        // ✅ АВТОМАТИЧЕСКАЯ ИНДЕКСАЦИЯ
+
         try {
             indexingService.indexShop(savedShop);
             log.info("Shop {} automatically indexed for search", savedShop.getId());
@@ -116,8 +116,7 @@ public class ShopService {
         shop.setCategories(categories);
 
         Shop updatedShop = shopRepository.save(shop);
-        
-        // ✅ ПЕРЕИНДЕКСАЦИЯ ПОСЛЕ ОБНОВЛЕНИЯ
+
         try {
             indexingService.indexShop(updatedShop);
             log.info("Shop {} re-indexed after update", updatedShop.getId());
@@ -159,18 +158,18 @@ public class ShopService {
 
     private void deleteShopWithItems(Shop shop) {
         List<Item> items = itemRepository.findByShopId(shop.getId());
-        
+
         for (Item item : items) {
             entityManager.createNativeQuery("DELETE FROM user_favorites WHERE item_id = :itemId")
                     .setParameter("itemId", item.getId())
                     .executeUpdate();
-            
+
             if (item.getImages() != null) {
                 for (String imageUrl : item.getImages()) {
                     fileStorageService.deleteFile(imageUrl);
                 }
             }
-            
+
             itemRepository.delete(item);
         }
 
@@ -224,18 +223,17 @@ public class ShopService {
     public ShopResponse approveShop(Long shopId) {
         Shop shop = shopRepository.findById(shopId)
                 .orElseThrow(() -> new ResourceNotFoundException("Shop not found with ID: " + shopId));
-        
+
         shop.setApproved(true);
         Shop approvedShop = shopRepository.save(shop);
-        
-        // ✅ ПЕРЕИНДЕКСАЦИЯ ПОСЛЕ ОДОБРЕНИЯ
+
         try {
             indexingService.indexShop(approvedShop);
             log.info("Approved shop {} re-indexed", approvedShop.getId());
         } catch (Exception e) {
             log.error("Failed to re-index shop {}: {}", approvedShop.getId(), e.getMessage());
         }
-        
+
         return mapToResponse(approvedShop);
     }
 
@@ -243,7 +241,7 @@ public class ShopService {
     public ShopResponse rejectShop(Long shopId) {
         Shop shop = shopRepository.findById(shopId)
                 .orElseThrow(() -> new ResourceNotFoundException("Shop not found with ID: " + shopId));
-        
+
         shop.setApproved(false);
         return mapToResponse(shopRepository.save(shop));
     }
@@ -282,7 +280,8 @@ public class ShopService {
                 .rating(shop.getRating())
                 .isApproved(shop.isApproved())
                 .createdAt(shop.getCreatedAt())
-                .favoritesCount(shop.getFavoritesCount())
+                // ← исправлено: null-safe
+                .favoritesCount(shop.getFavoritesCount() != null ? shop.getFavoritesCount() : 0)
                 .categories(shop.getCategories().stream()
                         .map(c -> com.skrepta.skreptajava.category.dto.CategoryResponse.builder()
                                 .id(c.getId())

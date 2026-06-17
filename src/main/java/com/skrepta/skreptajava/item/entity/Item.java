@@ -1,5 +1,6 @@
 package com.skrepta.skreptajava.item.entity;
 
+import com.skrepta.skreptajava.category.entity.Category;
 import com.skrepta.skreptajava.config.VectorType;
 import com.skrepta.skreptajava.shop.entity.Shop;
 import jakarta.persistence.*;
@@ -33,8 +34,15 @@ public class Item {
     @Column(nullable = false)
     private String title;
 
+    @Column(nullable = false)
+    private java.math.BigDecimal price;
+
     @Column(columnDefinition = "TEXT")
     private String description;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "category_id")
+    private Category category;
 
     @ElementCollection
     @CollectionTable(name = "item_images", joinColumns = @JoinColumn(name = "item_id"))

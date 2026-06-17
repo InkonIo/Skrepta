@@ -3,6 +3,7 @@ package com.skrepta.skreptajava.item.dto;
 import com.skrepta.skreptajava.shop.dto.ShopResponse;
 import lombok.Builder;
 import lombok.Data;
+    import java.math.BigDecimal;
 
 import java.time.Instant;
 import java.util.List;
@@ -22,4 +23,7 @@ public class ItemResponse {
     private int favorites;
     private Instant createdAt;
     private Instant updatedAt;
+    private BigDecimal price;
+    private Long categoryId;
+    private String categoryName;
 }

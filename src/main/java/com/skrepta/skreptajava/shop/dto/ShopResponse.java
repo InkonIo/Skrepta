@@ -24,5 +24,5 @@ public class ShopResponse {
     private boolean isApproved;
     private Instant createdAt;
     private Set<CategoryResponse> categories;
-    private int favoritesCount;
+    private Integer favoritesCount; // ← исправлено: Integer вместо int (может быть null)
 }
