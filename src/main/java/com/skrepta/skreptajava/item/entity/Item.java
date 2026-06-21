@@ -64,7 +64,6 @@ public class Item {
 
     private Instant updatedAt;
 
-    // ✅ НОВОЕ: Поле для хранения вектора (embedding)
     @Type(VectorType.class)
     @Column(columnDefinition = "vector(1536)")
     private PGvector embedding;

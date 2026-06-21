@@ -29,7 +29,7 @@ public class SearchService {
     private final ShopService shopService;
     private final CategoryService categoryService;
 
-    private static final double MIN_SCORE_THRESHOLD = 0.5; // Снизил до 50%
+    private static final double MIN_SCORE_THRESHOLD = 0.3; // Снизил до 30%
 
     /**
      * Выполняет семантический поиск по всем типам объектов

@@ -1,6 +1,5 @@
 package com.skrepta.skreptajava.smartsearch.controller;
 
-import com.pgvector.PGvector;
 import com.skrepta.skreptajava.smartsearch.dto.SearchRequest;
 import com.skrepta.skreptajava.smartsearch.dto.SearchResponse;
 import com.skrepta.skreptajava.smartsearch.service.EmbeddingCacheService;
@@ -12,7 +11,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import org.springframework.http.ResponseEntity;

@@ -45,6 +45,7 @@ public class SecurityConfig {
                                 "/api/auth/register",
                                 "/api/auth/forgot-password",
                                 "/api/auth/reset-password",
+                                "/api/auth/google",
                                 "/api/search/test"
                         ).permitAll()
                         
@@ -59,15 +60,16 @@ public class SecurityConfig {
                         .requestMatchers("/", "/error").permitAll()
                         
                         // READ-ONLY PUBLIC endpoints
-                        .requestMatchers(
-                                "GET",
-                                "/api/shops",
-                                "/api/shops/{id}",
-                                "/api/shops/{shopId}/items",
-                                "/api/items",
-                                "/api/items/{id}",
-                                "/api/categories"
-                        ).permitAll()
+.requestMatchers(
+        "GET",
+        "/api/shops",
+        "/api/shops/{id}",
+        "/api/shops/{shopId}/items",
+        "/api/items",
+        "/api/items/{id}",
+        "/api/categories",
+        "/api/trending/tags"   // ← добавь сюда
+).permitAll()
                         
                         // ✅ НОВОЕ: Публичный поиск (GET и POST)
                         .requestMatchers(
