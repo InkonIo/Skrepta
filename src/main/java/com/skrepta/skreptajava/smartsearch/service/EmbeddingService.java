@@ -19,7 +19,11 @@ public class EmbeddingService {
     private final EmbeddingCacheService cacheService; 
     private final RateLimiter rateLimiter; 
     
-    private static final String MODEL = "text-embedding-3-large";
+    // text-embedding-3-small нативно отдаёт 1536-мерный вектор —
+    // именно под это размечена схема БД (vector(1536) в items/shops/categories).
+    // text-embedding-3-large отдаёт 3072 и без параметра dimensions
+    // (которого нет в этой версии theokanning/openai-java) ломает запись в БД.
+    private static final String MODEL = "text-embedding-3-small";
     private static final int MAX_RETRIES = 3;
     private static final long RETRY_DELAY_MS = 1000;
 
@@ -111,7 +115,6 @@ public class EmbeddingService {
         }
         
         if (description != null) {
-            // Обрезаем длинные описания
             String shortDesc = description.length() > 500 
                 ? description.substring(0, 500) + "..." 
                 : description;
@@ -127,7 +130,7 @@ public class EmbeddingService {
         
         if (name != null) {
             sb.append(name).append(". ");
-            sb.append(name).append(". "); // Дубль для веса
+            sb.append(name).append(". ");
         }
         
         if (description != null) sb.append(description).append(". ");
@@ -136,15 +139,12 @@ public class EmbeddingService {
         return sb.toString().trim();
     }
 
-    /**
-     * Генерирует текстовый блок для категории
-     */
     public String generateCategoryText(String name, String slug) {
         StringBuilder sb = new StringBuilder();
         
         if (name != null) {
             sb.append(name).append(". ");
-            sb.append(name).append(". "); // Дубль для веса
+            sb.append(name).append(". ");
         }
         if (slug != null) sb.append("Тип: ").append(slug);
         
