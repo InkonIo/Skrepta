@@ -3,11 +3,15 @@ package com.skrepta.skreptajava.item.entity;
 import com.skrepta.skreptajava.category.entity.Category;
 import com.skrepta.skreptajava.config.VectorType;
 import com.skrepta.skreptajava.shop.entity.Shop;
+
+import io.hypersistence.utils.hibernate.type.json.JsonType;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
+import com.fasterxml.jackson.databind.JsonNode;
 import com.pgvector.PGvector;
 
 import java.time.Instant;
@@ -63,6 +67,10 @@ public class Item {
     private Instant createdAt;
 
     private Instant updatedAt;
+
+    @Type(JsonType.class)
+@Column(name = "attributes", columnDefinition = "jsonb")
+private JsonNode attributes;
 
     @Type(VectorType.class)
     @Column(columnDefinition = "vector(1536)")

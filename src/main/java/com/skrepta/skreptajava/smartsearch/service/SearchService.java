@@ -67,7 +67,7 @@ public class SearchService {
 
         // 2. Ищем по каждому типу объектов
         if (request.getType() == null || "ITEM".equals(request.getType())) {
-            allResults.addAll(searchItemsInternal(queryEmbedding, request.getLimit()));
+            allResults.addAll(searchItemsInternal(queryEmbedding, request.getLimit(), request));
         }
 
         if (request.getType() == null || "SHOP".equals(request.getType())) {
@@ -107,7 +107,7 @@ public class SearchService {
         try {
             // Keyword search по каждому типу
             if (request.getType() == null || "ITEM".equals(request.getType())) {
-                allResults.addAll(keywordSearchItems(request.getQuery(), request.getLimit()));
+                allResults.addAll(keywordSearchItems(request.getQuery(), request.getLimit(), request));
             }
 
             if (request.getType() == null || "SHOP".equals(request.getType())) {
@@ -152,9 +152,10 @@ public class SearchService {
     // SEMANTIC SEARCH - внутренние методы
     // ============================================
 
-    private List<SearchResultItem> searchItemsInternal(PGvector queryEmbedding, int limit) {
-        try {
-            List<Map<String, Object>> rawResults = searchRepository.searchItems(queryEmbedding, limit);
+    private List<SearchResultItem> searchItemsInternal(PGvector queryEmbedding, int limit, SearchRequest request) {
+    try {
+        List<Map<String, Object>> rawResults = searchRepository.searchItems(
+            queryEmbedding, limit, request.getCategoryId(), request.getCity(), request.getAttributes());
             
             return rawResults.stream()
                     .map(result -> {
@@ -240,10 +241,10 @@ public class SearchService {
     // FALLBACK: KEYWORD SEARCH - внутренние методы
     // ============================================
 
-    private List<SearchResultItem> keywordSearchItems(String query, int limit) {
-        try {
-            List<Map<String, Object>> rawResults = 
-                searchRepository.keywordSearchItems(query, limit);
+    private List<SearchResultItem> keywordSearchItems(String query, int limit, SearchRequest request) {
+    try {
+        List<Map<String, Object>> rawResults =
+            searchRepository.keywordSearchItems(query, limit, request.getCategoryId(), request.getCity(), request.getAttributes());
             
             return rawResults.stream()
                     .map(result -> {

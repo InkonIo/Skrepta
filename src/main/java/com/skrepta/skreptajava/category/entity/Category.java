@@ -2,11 +2,15 @@ package com.skrepta.skreptajava.category.entity;
 
 import com.skrepta.skreptajava.config.VectorType;
 import com.skrepta.skreptajava.shop.entity.Shop;
+
+import io.hypersistence.utils.hibernate.type.json.JsonType;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
+import com.fasterxml.jackson.databind.JsonNode;
 import com.pgvector.PGvector;
 
 import java.util.ArrayList;
@@ -55,6 +59,10 @@ public class Category {
    @Type(VectorType.class)
     @Column(columnDefinition = "vector(1536)")
     private PGvector embedding;
+
+    @Type(JsonType.class)
+@Column(name = "attribute_schema", columnDefinition = "jsonb")
+private JsonNode attributeSchema;
 
     @Override
     public boolean equals(Object o) {

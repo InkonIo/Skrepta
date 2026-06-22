@@ -1,5 +1,7 @@
 package com.skrepta.skreptajava.item.service;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.skrepta.skreptajava.auth.entity.User;
 import com.skrepta.skreptajava.auth.exception.ResourceNotFoundException;
 import com.skrepta.skreptajava.auth.repository.UserRepository;
@@ -39,6 +41,7 @@ public class ItemService {
     private final FileStorageService fileStorageService;
     private final ShopService shopService;
     private final IndexingService indexingService;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Transactional
     public ItemResponse createItem(Long shopId, ItemRequest request) throws IOException {
@@ -62,6 +65,7 @@ public class ItemService {
                 .images(imageUrls)
                 .tags(request.getTags())
                 .city(request.getCity())
+                .attributes(parseAttributes(request.getAttributesJson()))
                 .isActive(true)
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
@@ -69,7 +73,6 @@ public class ItemService {
 
         Item savedItem = itemRepository.save(item);
 
-        // ✅ АВТОМАТИЧЕСКАЯ ИНДЕКСАЦИЯ
         try {
             indexingService.indexItem(savedItem);
             log.info("Item {} automatically indexed for search", savedItem.getId());
@@ -103,11 +106,11 @@ public class ItemService {
         item.setCategory(category);
         item.setTags(request.getTags());
         item.setCity(request.getCity());
+        item.setAttributes(parseAttributes(request.getAttributesJson()));
         item.setUpdatedAt(Instant.now());
 
         Item updatedItem = itemRepository.save(item);
 
-        // ✅ ПЕРЕИНДЕКСАЦИЯ ПОСЛЕ ОБНОВЛЕНИЯ
         try {
             indexingService.indexItem(updatedItem);
             log.info("Item {} re-indexed after update", updatedItem.getId());
@@ -156,24 +159,53 @@ public class ItemService {
 
     @Transactional(readOnly = true)
     public List<ItemResponse> getItemsByShopId(Long shopId) {
-        Shop shop = shopRepository.findById(shopId)
-            .orElseThrow(() -> new ResourceNotFoundException("Shop not found with id: " + shopId));
+        shopRepository.findById(shopId)
+                .orElseThrow(() -> new ResourceNotFoundException("Shop not found with id: " + shopId));
 
-        List<Item> items = itemRepository.findByShopId(shopId);
-
-        return items.stream()
-            .filter(Item::isActive)
-            .map(this::mapToResponse)
-            .collect(Collectors.toList());
+        return itemRepository.findByShopId(shopId).stream()
+                .filter(Item::isActive)
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
     }
 
     @Transactional
     public void incrementItemView(Long itemId) {
         Item item = itemRepository.findById(itemId)
                 .orElseThrow(() -> new ResourceNotFoundException("Item not found with ID: " + itemId));
-        
+
         item.setViews(item.getViews() + 1);
         itemRepository.save(item);
+    }
+
+    public ItemResponse mapToResponse(Item item) {
+        return ItemResponse.builder()
+                .id(item.getId())
+                .shop(shopService.getShopById(item.getShop().getId()))
+                .title(item.getTitle())
+                .description(item.getDescription())
+                .price(item.getPrice())
+                .categoryId(item.getCategory() != null ? item.getCategory().getId() : null)
+                .categoryName(item.getCategory() != null ? item.getCategory().getName() : null)
+                .images(item.getImages())
+                .tags(item.getTags())
+                .city(item.getCity())
+                .isActive(item.isActive())
+                .views(item.getViews())
+                .favorites(item.getFavorites())
+                .createdAt(item.getCreatedAt())
+                .updatedAt(item.getUpdatedAt())
+                .attributes(item.getAttributes())
+                .build();
+    }
+
+    private JsonNode parseAttributes(String json) {
+        if (json == null || json.isBlank()) return null;
+        try {
+            return objectMapper.readTree(json);
+        } catch (Exception e) {
+            log.warn("Failed to parse attributesJson: {}", json);
+            return null;
+        }
     }
 
     private User getCurrentUser() {
@@ -195,9 +227,7 @@ public class ItemService {
     }
 
     private List<String> uploadImages(List<MultipartFile> files) throws IOException {
-        if (files == null || files.isEmpty()) {
-            return List.of();
-        }
+        if (files == null || files.isEmpty()) return List.of();
         return files.stream()
                 .map(file -> {
                     try {
@@ -207,25 +237,5 @@ public class ItemService {
                     }
                 })
                 .collect(Collectors.toList());
-    }
-
-    public ItemResponse mapToResponse(Item item) {
-        return ItemResponse.builder()
-                .id(item.getId())
-                .shop(shopService.getShopById(item.getShop().getId()))
-                .title(item.getTitle())
-                .description(item.getDescription())
-                .price(item.getPrice())
-                .categoryId(item.getCategory() != null ? item.getCategory().getId() : null)
-                .categoryName(item.getCategory() != null ? item.getCategory().getName() : null)
-                .images(item.getImages())
-                .tags(item.getTags())
-                .city(item.getCity())
-                .isActive(item.isActive())
-                .views(item.getViews())
-                .favorites(item.getFavorites())
-                .createdAt(item.getCreatedAt())
-                .updatedAt(item.getUpdatedAt())
-                .build();
     }
 }

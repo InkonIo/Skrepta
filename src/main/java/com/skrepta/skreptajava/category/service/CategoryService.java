@@ -1,5 +1,6 @@
 package com.skrepta.skreptajava.category.service;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.skrepta.skreptajava.auth.exception.ResourceNotFoundException;
 import com.skrepta.skreptajava.category.dto.CategoryRequest;
 import com.skrepta.skreptajava.category.dto.CategoryResponse;
@@ -153,6 +154,23 @@ public class CategoryService {
         categoryRepository.delete(category);
     }
 
+    @Transactional
+public CategoryResponse updateAttributeSchema(Long id, JsonNode attributeSchema) {
+    Category category = categoryRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Category not found with ID: " + id));
+
+    category.setAttributeSchema(attributeSchema);
+    Category savedCategory = categoryRepository.save(category);
+
+    try {
+        indexingService.indexCategory(savedCategory);
+    } catch (Exception e) {
+        log.error("Failed to re-index category {}: {}", savedCategory.getId(), e.getMessage());
+    }
+
+    return mapToResponse(savedCategory);
+}
+
     @Transactional(readOnly = true)
     public List<CategoryResponse> getAllRootCategories() {
         return categoryRepository.findAll().stream()
@@ -248,6 +266,7 @@ public class CategoryService {
                 .position(category.getPosition())
                 .isActive(category.getIsActive())
                 .children(children)
+                .attributeSchema(category.getAttributeSchema())
                 .build();
     }
 }

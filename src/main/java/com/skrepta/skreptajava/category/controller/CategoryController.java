@@ -1,5 +1,6 @@
 package com.skrepta.skreptajava.category.controller;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.skrepta.skreptajava.category.dto.CategoryRequest;
 import com.skrepta.skreptajava.category.dto.CategoryResponse;
 import com.skrepta.skreptajava.category.dto.CategoryStatusRequest;
@@ -65,6 +66,15 @@ public ResponseEntity<CategoryResponse> updateCategoryStatus(
         @RequestBody @Valid CategoryStatusRequest request
 ) {
     return ResponseEntity.ok(categoryService.updateCategoryStatus(id, request));
+}
+
+@PutMapping("/{id}/attribute-schema")
+@PreAuthorize("hasRole('ADMIN')")
+public ResponseEntity<CategoryResponse> updateAttributeSchema(
+        @PathVariable Long id,
+        @RequestBody JsonNode attributeSchema
+) {
+    return ResponseEntity.ok(categoryService.updateAttributeSchema(id, attributeSchema));
 }
 
 }

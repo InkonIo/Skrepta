@@ -1,5 +1,6 @@
 package com.skrepta.skreptajava.item.dto;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.skrepta.skreptajava.shop.dto.ShopResponse;
 import lombok.Builder;
 import lombok.Data;
@@ -26,4 +27,5 @@ public class ItemResponse {
     private BigDecimal price;
     private Long categoryId;
     private String categoryName;
+    private JsonNode attributes;
 }

@@ -4,6 +4,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 import org.springframework.web.multipart.MultipartFile;
+
 import java.math.BigDecimal;
 import jakarta.validation.constraints.DecimalMin;
 import java.util.List;
@@ -15,12 +16,14 @@ public class ItemRequest {
 
     private String description;
 
-    private List<MultipartFile> imageFiles; // Для загрузки нескольких файлов
+    private List<MultipartFile> imageFiles;
 
     @NotNull(message = "Category ID is required")
     private Long categoryId;
 
     private List<String> tags;
+
+    private String attributesJson;
 
     @NotBlank(message = "City is required")
     private String city;

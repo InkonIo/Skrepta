@@ -23,22 +23,43 @@ public class SearchRepository {
     /**
      * Векторный поиск по товарам
      */
-    public List<Map<String, Object>> searchItems(PGvector embedding, int limit) {
-        String sql = """
-            SELECT
-                i.id,
-                i.title,
-                1 - (i.embedding <=> CAST(? AS vector)) AS score
-            FROM items i
-            WHERE i.embedding IS NOT NULL
-              AND i.is_active = true
-            ORDER BY i.embedding <=> CAST(? AS vector)
-            LIMIT ?
-            """;
-        
-        String embeddingStr = embedding.toString();
-        return jdbcTemplate.queryForList(sql, embeddingStr, embeddingStr, limit);
+    public List<Map<String, Object>> searchItems(PGvector embedding, int limit,
+        Long categoryId, String city, Map<String, String> attributes) {
+
+    StringBuilder sql = new StringBuilder("""
+        SELECT
+            i.id,
+            i.title,
+            1 - (i.embedding <=> CAST(? AS vector)) AS score
+        FROM items i
+        WHERE i.embedding IS NOT NULL
+          AND i.is_active = true
+        """);
+
+    List<Object> params = new java.util.ArrayList<>();
+    String embeddingStr = embedding.toString();
+    params.add(embeddingStr);
+
+    if (categoryId != null) {
+        sql.append(" AND i.category_id = ?");
+        params.add(categoryId);
     }
+    if (city != null && !city.isBlank()) {
+        sql.append(" AND i.city = ?");
+        params.add(city);
+    }
+    if (attributes != null && !attributes.isEmpty()) {
+        sql.append(" AND i.attributes @> CAST(? AS jsonb)");
+        params.add(new com.fasterxml.jackson.databind.ObjectMapper()
+            .valueToTree(attributes).toString());
+    }
+
+    sql.append(" ORDER BY i.embedding <=> CAST(? AS vector) LIMIT ?");
+    params.add(embeddingStr);
+    params.add(limit);
+
+    return jdbcTemplate.queryForList(sql.toString(), params.toArray());
+}
 
     /**
      * Векторный поиск по магазинам
@@ -88,37 +109,59 @@ public class SearchRepository {
      * Текстовый поиск по товарам (FALLBACK)
      * Использует простой ILIKE поиск
      */
-    public List<Map<String, Object>> keywordSearchItems(String query, int limit) {
-        String sql = """
-            SELECT 
-                i.id,
-                i.title,
-                0.6 as score,
-                'KEYWORD_MATCH' as match_type
-            FROM items i
-            WHERE i.is_active = true
-              AND (
-                  LOWER(i.title) LIKE LOWER(?) 
-                  OR LOWER(i.description) LIKE LOWER(?)
-              )
-            ORDER BY 
-                CASE 
-                    WHEN LOWER(i.title) = LOWER(?) THEN 1
-                    WHEN LOWER(i.title) LIKE LOWER(?) THEN 2
-                    ELSE 3 
-                END,
-                i.created_at DESC
-            LIMIT ?
-            """;
-        
-        String likePattern = "%" + query + "%";
-        String startsWithPattern = query + "%";
-        
-        return jdbcTemplate.queryForList(sql, 
-            likePattern, likePattern, 
-            query, startsWithPattern, 
-            limit);
+    public List<Map<String, Object>> keywordSearchItems(String query, int limit,
+        Long categoryId, String city, Map<String, String> attributes) {
+
+    StringBuilder sql = new StringBuilder("""
+        SELECT 
+            i.id,
+            i.title,
+            0.6 as score,
+            'KEYWORD_MATCH' as match_type
+        FROM items i
+        WHERE i.is_active = true
+          AND (
+              LOWER(i.title) LIKE LOWER(?)
+              OR LOWER(i.description) LIKE LOWER(?)
+          )
+        """);
+
+    String likePattern = "%" + query + "%";
+    String startsWithPattern = query + "%";
+    List<Object> params = new java.util.ArrayList<>();
+    params.add(likePattern);
+    params.add(likePattern);
+
+    if (categoryId != null) {
+        sql.append(" AND i.category_id = ?");
+        params.add(categoryId);
     }
+    if (city != null && !city.isBlank()) {
+        sql.append(" AND i.city = ?");
+        params.add(city);
+    }
+    if (attributes != null && !attributes.isEmpty()) {
+        sql.append(" AND i.attributes @> CAST(? AS jsonb)");
+        params.add(new com.fasterxml.jackson.databind.ObjectMapper()
+            .valueToTree(attributes).toString());
+    }
+
+    sql.append("""
+         ORDER BY 
+            CASE 
+                WHEN LOWER(i.title) = LOWER(?) THEN 1
+                WHEN LOWER(i.title) LIKE LOWER(?) THEN 2
+                ELSE 3 
+            END,
+            i.created_at DESC
+        LIMIT ?
+        """);
+    params.add(query);
+    params.add(startsWithPattern);
+    params.add(limit);
+
+    return jdbcTemplate.queryForList(sql.toString(), params.toArray());
+}
 
     /**
      * Текстовый поиск по магазинам (FALLBACK)

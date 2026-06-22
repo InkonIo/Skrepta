@@ -1,5 +1,7 @@
 package com.skrepta.skreptajava.category.dto;
 
+import com.fasterxml.jackson.databind.JsonNode;
+
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
@@ -17,4 +19,6 @@ public class CategoryRequest {
     private Integer position;
 
     private Boolean isActive = true;
+
+    private JsonNode attributeSchema;
 }

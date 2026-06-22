@@ -1,5 +1,6 @@
 package com.skrepta.skreptajava.category.dto;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.skrepta.skreptajava.category.entity.Category;
 import lombok.Builder;
 import lombok.Data;
@@ -18,6 +19,8 @@ public class CategoryResponse {
     private Integer position;
     private Boolean isActive;
     private List<CategoryResponse> children;
+
+    private JsonNode attributeSchema;
 
     // ✅ этот метод ДОЛЖЕН быть внутри класса
     public static CategoryResponse fromEntity(Category category) {
