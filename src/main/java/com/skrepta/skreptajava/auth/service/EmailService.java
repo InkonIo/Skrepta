@@ -19,13 +19,14 @@ public class EmailService {
      * @param text the body of the email
      */
     @Async
-    public void sendEmail(String to, String subject, String text) {
-        SimpleMailMessage message = new SimpleMailMessage();
-        message.setTo(to);
-        message.setSubject(subject);
-        message.setText(text);
-        mailSender.send(message);
-    }
+public void sendEmail(String to, String subject, String text) {
+    SimpleMailMessage message = new SimpleMailMessage();
+    message.setFrom("noreply@skrepta.kz");  // добавь
+    message.setTo(to);
+    message.setSubject(subject);
+    message.setText(text);
+    mailSender.send(message);
+}
 
     /**
      * Sends a password reset email.
