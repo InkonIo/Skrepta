@@ -3,7 +3,6 @@ package com.skrepta.skreptajava.auth.service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -12,27 +11,15 @@ public class EmailService {
 
     private final JavaMailSender mailSender;
 
-    /**
-     * Sends a simple email.
-     * @param to the recipient's email address
-     * @param subject the subject of the email
-     * @param text the body of the email
-     */
-    @Async
-public void sendEmail(String to, String subject, String text) {
-    SimpleMailMessage message = new SimpleMailMessage();
-    message.setFrom("noreply@skrepta.kz");  // добавь
-    message.setTo(to);
-    message.setSubject(subject);
-    message.setText(text);
-    mailSender.send(message);
-}
+    public void sendEmail(String to, String subject, String text) {
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setFrom("noreply@skrepta.kz");
+        message.setTo(to);
+        message.setSubject(subject);
+        message.setText(text);
+        mailSender.send(message);
+    }
 
-    /**
-     * Sends a password reset email.
-     * @param to the recipient's email address
-     * @param resetCode the 6-digit code the user should use to reset their password
-     */  
     public void sendPasswordResetCode(String to, String resetCode) {
         String subject = "Сброс пароля для Skrepta";
         String text = String.format(
@@ -49,11 +36,6 @@ public void sendEmail(String to, String subject, String text) {
         sendEmail(to, subject, text);
     }
 
-    /**
-     * Sends a registration confirmation email.
-     * @param to the recipient's email address
-     * @param fio the full name of the user
-     */
     public void sendRegistrationConfirmationEmail(String to, String fio) {
         String subject = "Добро пожаловать в Skrepta!";
         String text = String.format(
