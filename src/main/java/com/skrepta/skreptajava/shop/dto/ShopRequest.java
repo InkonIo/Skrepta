@@ -29,6 +29,5 @@ public class ShopRequest {
     @NotNull(message = "Category IDs are required")
     private Set<Long> categoryIds;
 
-    // Опциональное поле для админа: указать владельца магазина
     private Long ownerId;
 }

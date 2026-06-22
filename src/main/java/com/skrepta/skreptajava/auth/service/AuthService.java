@@ -6,6 +6,7 @@ import com.skrepta.skreptajava.auth.dto.RegisterRequest;
 import com.skrepta.skreptajava.auth.dto.ForgotPasswordRequest;
 import com.skrepta.skreptajava.auth.dto.ResetPasswordRequest;
 import com.skrepta.skreptajava.auth.dto.UserResponse;
+import com.skrepta.skreptajava.auth.dto.UserUpdateRequest;
 import com.skrepta.skreptajava.auth.entity.User;
 import com.skrepta.skreptajava.auth.exception.InvalidCredentialsException;
 import com.skrepta.skreptajava.auth.exception.ResourceNotFoundException;
@@ -150,6 +151,32 @@ public class AuthService {
     }
 
     @Transactional
+public UserResponse updateMyProfile(String email, UserUpdateRequest request) {
+    User user = userRepository.findByEmail(email)
+            .orElseThrow(() -> new ResourceNotFoundException("User not found with email: " + email));
+
+    if (request.getFio() != null && !request.getFio().isBlank()) {
+        user.setFio(request.getFio());
+    }
+
+    if (request.getPhoneNumber() != null && !request.getPhoneNumber().isBlank()) {
+        if (!request.getPhoneNumber().equals(user.getPhoneNumber())
+                && userRepository.existsByPhoneNumber(request.getPhoneNumber())) {
+            throw new UserAlreadyExistsException("Этот номер телефона уже используется");
+        }
+        user.setPhoneNumber(request.getPhoneNumber());
+    }
+
+    if (request.getCity() != null && !request.getCity().isBlank()) {
+        user.setCity(request.getCity());
+    }
+
+    userRepository.save(user);
+
+    return mapToUserResponse(user);
+}
+
+    @Transactional
     public void deleteMyAccount(String email) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with email: " + email));
@@ -198,14 +225,15 @@ public class AuthService {
     }
 
     private UserResponse mapToUserResponse(User user) {
-        return UserResponse.builder()
-                .id(user.getId())
-                .email(user.getEmail())
-                .fio(user.getFio())
-                .phoneNumber(user.getPhoneNumber())
-                .city(user.getCity())
-                .role(user.getRole())
-                .avatarUrl(user.getAvatarUrl())
-                .build();
-    }
+    return UserResponse.builder()
+            .id(user.getId())
+            .email(user.getEmail())
+            .fio(user.getFio())
+            .phoneNumber(user.getPhoneNumber())
+            .city(user.getCity())
+            .role(user.getRole())
+            .avatarUrl(user.getAvatarUrl())
+            .createdAt(user.getCreatedAt())   // ← было пропущено, отсюда 1970 на фронте
+            .build();
+}
 }

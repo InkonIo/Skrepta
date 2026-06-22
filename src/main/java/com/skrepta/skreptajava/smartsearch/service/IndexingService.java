@@ -45,7 +45,9 @@ public class IndexingService {
         AtomicInteger count = new AtomicInteger(0);
         items.forEach(item -> {
             try {
-                indexItem(item);
+                // Batch-режим: каждый элемент в своей транзакции,
+                // чтобы ошибка одного не валила весь reindex.
+                indexItemNewTx(item);
                 count.incrementAndGet();
                 if (count.get() % 10 == 0) {
                     log.info("Indexed {}/{} items", count.get(), items.size());
@@ -65,7 +67,7 @@ public class IndexingService {
         AtomicInteger count = new AtomicInteger(0);
         shops.forEach(shop -> {
             try {
-                indexShop(shop);
+                indexShopNewTx(shop);
                 count.incrementAndGet();
             } catch (Exception e) {
                 log.error("Failed to index shop {}: {}", shop.getId(), e.getMessage());
@@ -82,7 +84,7 @@ public class IndexingService {
         AtomicInteger count = new AtomicInteger(0);
         categories.forEach(category -> {
             try {
-                indexCategory(category);
+                indexCategoryNewTx(category);
                 count.incrementAndGet();
             } catch (Exception e) {
                 log.error("Failed to index category {}: {}", category.getId(), e.getMessage());
@@ -92,9 +94,66 @@ public class IndexingService {
         return count.get();
     }
 
-    // ↓ ИСПРАВЛЕНО: REQUIRES_NEW — отдельная транзакция, не откатывает родительскую
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    // ──────────────────────────────────────────────────────────────────
+    // ОДИНОЧНАЯ ИНДЕКСАЦИЯ — вызывается сразу после create/update в той
+    // же бизнес-транзакции. БЕЗ REQUIRES_NEW.
+    //
+    // Почему важно: при GenerationType.IDENTITY save() в родительской
+    // транзакции (createItem) уже делает физический INSERT, чтобы
+    // получить ID, но эта транзакция ещё не закоммичена. Если здесь
+    // открыть REQUIRES_NEW, новая транзакция работает на отдельном
+    // соединении и не видит незакоммиченную строку — Hibernate решает,
+    // что сущность новая, и при merge() с IDENTITY делает ВТОРОЙ INSERT
+    // с новым ID. Результат — дубль в БД с одинаковым content/created_at.
+    //
+    // Без REQUIRES_NEW indexItem просто участвует в той же транзакции
+    // (Propagation.REQUIRED по умолчанию), видит ту же Hibernate Session,
+    // и save() корректно обновляет embedding на УЖЕ существующей строке.
+    // ──────────────────────────────────────────────────────────────────
+
+    @Transactional
     public void indexItem(Item item) {
+        doIndexItem(item);
+    }
+
+    @Transactional
+    public void indexShop(Shop shop) {
+        doIndexShop(shop);
+    }
+
+    @Transactional
+    public void indexCategory(Category category) {
+        doIndexCategory(category);
+    }
+
+    // ──────────────────────────────────────────────────────────────────
+    // BATCH-ИНДЕКСАЦИЯ — каждый элемент в своей собственной транзакции.
+    // Тут REQUIRES_NEW уместен: цикл идёт по уже сохранённым сущностям
+    // (никакого parallel-insert риска), и нужно, чтобы сбой одного
+    // элемента не откатывал остальные.
+    // ──────────────────────────────────────────────────────────────────
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void indexItemNewTx(Item item) {
+        doIndexItem(item);
+    }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void indexShopNewTx(Shop shop) {
+        doIndexShop(shop);
+    }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void indexCategoryNewTx(Category category) {
+        doIndexCategory(category);
+    }
+
+    // ──────────────────────────────────────────────────────────────────
+    // Общая логика, без своей транзакционной аннотации —
+    // выполняется в транзакции метода-вызывающего.
+    // ──────────────────────────────────────────────────────────────────
+
+    private void doIndexItem(Item item) {
         if (item == null) return;
         String categoryName = item.getShop() != null &&
                              item.getShop().getCategories() != null &&
@@ -115,9 +174,7 @@ public class IndexingService {
         }
     }
 
-    // ↓ ИСПРАВЛЕНО: REQUIRES_NEW — отдельная транзакция, не откатывает родительскую
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void indexShop(Shop shop) {
+    private void doIndexShop(Shop shop) {
         if (shop == null) return;
         String ownerName = shop.getOwner() != null ? shop.getOwner().getFio() : null;
         String text = embeddingService.generateShopText(
@@ -133,9 +190,7 @@ public class IndexingService {
         }
     }
 
-    // ↓ ИСПРАВЛЕНО: REQUIRES_NEW — отдельная транзакция, не откатывает родительскую
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void indexCategory(Category category) {
+    private void doIndexCategory(Category category) {
         if (category == null) return;
         String text = embeddingService.generateCategoryText(
                 category.getName(),

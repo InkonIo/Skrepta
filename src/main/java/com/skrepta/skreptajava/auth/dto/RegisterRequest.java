@@ -26,7 +26,8 @@ public class RegisterRequest {
     @NotBlank(message = "Full name (FIO) cannot be empty")
     private String fio;
 
-    @NotBlank(message = "Phone number cannot be empty")
+    // Раньше было @NotBlank — фронт показывал "Телефон (необязательно)",
+    // но бэк всё равно требовал заполнить поле. Теперь действительно опционально.
     private String phoneNumber;
 
     @NotBlank(message = "City cannot be empty")

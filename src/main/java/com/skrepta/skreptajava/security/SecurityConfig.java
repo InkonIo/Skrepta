@@ -92,6 +92,8 @@ public class SecurityConfig {
                         
                         // Удаление своего аккаунта
                         .requestMatchers("DELETE", "/api/auth/me").authenticated()
+
+                        .requestMatchers("PUT", "/api/auth/me").authenticated()
                         
                         // Refresh token
                         .requestMatchers("/api/auth/refresh-token").authenticated()

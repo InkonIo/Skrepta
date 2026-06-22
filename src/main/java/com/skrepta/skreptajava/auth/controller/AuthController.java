@@ -5,11 +5,14 @@ import com.skrepta.skreptajava.auth.dto.LoginRequest;
 import com.skrepta.skreptajava.auth.dto.RegisterRequest;
 import com.skrepta.skreptajava.auth.dto.ForgotPasswordRequest;
 import com.skrepta.skreptajava.auth.dto.ResetPasswordRequest;
+import com.skrepta.skreptajava.auth.dto.UserResponse;
+import com.skrepta.skreptajava.auth.dto.UserUpdateRequest;
 import com.skrepta.skreptajava.auth.service.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -62,4 +65,12 @@ public class AuthController {
         authService.deleteMyAccount(email);
         return ResponseEntity.noContent().build();
     }
+
+    @PutMapping("/me")
+public ResponseEntity<UserResponse> updateMyProfile(
+        @Valid @RequestBody UserUpdateRequest request
+) {
+    String email = SecurityContextHolder.getContext().getAuthentication().getName();
+    return ResponseEntity.ok(authService.updateMyProfile(email, request));
+}
 }

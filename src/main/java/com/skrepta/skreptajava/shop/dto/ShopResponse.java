@@ -1,5 +1,6 @@
 package com.skrepta.skreptajava.shop.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.skrepta.skreptajava.auth.dto.UserResponse;
 import com.skrepta.skreptajava.category.dto.CategoryResponse;
 import lombok.Builder;
@@ -21,6 +22,7 @@ public class ShopResponse {
     private String city;
     private String address;
     private double rating;
+    @JsonProperty("isApproved")
     private boolean isApproved;
     private Instant createdAt;
     private Set<CategoryResponse> categories;
