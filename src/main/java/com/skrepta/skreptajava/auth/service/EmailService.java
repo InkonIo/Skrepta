@@ -3,6 +3,7 @@ package com.skrepta.skreptajava.auth.service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -17,6 +18,7 @@ public class EmailService {
      * @param subject the subject of the email
      * @param text the body of the email
      */
+    @Async
     public void sendEmail(String to, String subject, String text) {
         SimpleMailMessage message = new SimpleMailMessage();
         message.setTo(to);
@@ -29,7 +31,7 @@ public class EmailService {
      * Sends a password reset email.
      * @param to the recipient's email address
      * @param resetCode the 6-digit code the user should use to reset their password
-     */
+     */  
     public void sendPasswordResetCode(String to, String resetCode) {
         String subject = "Сброс пароля для Skrepta";
         String text = String.format(
