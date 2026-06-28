@@ -6,6 +6,9 @@ import com.skrepta.skreptajava.auth.repository.UserRepository;
 import com.skrepta.skreptajava.category.entity.Category;
 import com.skrepta.skreptajava.category.repository.CategoryRepository;
 import com.skrepta.skreptajava.config.FileStorageService;
+import com.skrepta.skreptajava.location.entity.City;
+import com.skrepta.skreptajava.location.repository.CityRepository;
+import com.skrepta.skreptajava.location.service.LocationService;
 import com.skrepta.skreptajava.shop.dto.ShopRequest;
 import com.skrepta.skreptajava.shop.dto.ShopResponse;
 import com.skrepta.skreptajava.shop.entity.Shop;
@@ -36,6 +39,8 @@ public class ShopService {
     private final ShopRepository shopRepository;
     private final UserRepository userRepository;
     private final CategoryRepository categoryRepository;
+    private final CityRepository cityRepository;
+    private final LocationService locationService;
     private final FileStorageService fileStorageService;
     private final ItemRepository itemRepository;
     private final EntityManager entityManager;
@@ -57,6 +62,9 @@ public class ShopService {
 
         Set<Category> categories = getCategoriesByIds(request.getCategoryIds());
 
+        City city = cityRepository.findById(request.getCityId())
+                .orElseThrow(() -> new ResourceNotFoundException("City not found with ID: " + request.getCityId()));
+
         String logoUrl = null;
         if (request.getLogoFile() != null && !request.getLogoFile().isEmpty()) {
             logoUrl = fileStorageService.uploadFile(request.getLogoFile());
@@ -69,12 +77,12 @@ public class ShopService {
                 .logoUrl(logoUrl)
                 .phone(request.getPhone())
                 .instagramLink(request.getInstagramLink())
-                .city(request.getCity())
+                .city(city)
                 .address(request.getAddress())
                 .createdAt(Instant.now())
                 .isApproved(currentUser.getRole() == User.Role.ADMIN)
                 .categories(categories)
-                .favoritesCount(0) // ← явно инициализируем 0
+                .favoritesCount(0)
                 .build();
 
         Shop savedShop = shopRepository.save(shop);
@@ -99,6 +107,9 @@ public class ShopService {
 
         Set<Category> categories = getCategoriesByIds(request.getCategoryIds());
 
+        City city = cityRepository.findById(request.getCityId())
+                .orElseThrow(() -> new ResourceNotFoundException("City not found with ID: " + request.getCityId()));
+
         if (request.getLogoFile() != null && !request.getLogoFile().isEmpty()) {
             if (shop.getLogoUrl() != null) {
                 fileStorageService.deleteFile(shop.getLogoUrl());
@@ -111,7 +122,7 @@ public class ShopService {
         shop.setDescription(request.getDescription());
         shop.setPhone(request.getPhone());
         shop.setInstagramLink(request.getInstagramLink());
-        shop.setCity(request.getCity());
+        shop.setCity(city);
         shop.setAddress(request.getAddress());
         shop.setCategories(categories);
 
@@ -275,12 +286,11 @@ public class ShopService {
                 .logoUrl(shop.getLogoUrl())
                 .phone(shop.getPhone())
                 .instagramLink(shop.getInstagramLink())
-                .city(shop.getCity())
+                .city(shop.getCity() != null ? locationService.toCityResponse(shop.getCity()) : null)
                 .address(shop.getAddress())
                 .rating(shop.getRating())
                 .isApproved(shop.isApproved())
                 .createdAt(shop.getCreatedAt())
-                // ← исправлено: null-safe
                 .favoritesCount(shop.getFavoritesCount() != null ? shop.getFavoritesCount() : 0)
                 .categories(shop.getCategories().stream()
                         .map(c -> com.skrepta.skreptajava.category.dto.CategoryResponse.builder()
@@ -298,7 +308,7 @@ public class ShopService {
                 .email(user.getEmail())
                 .fio(user.getFio())
                 .phoneNumber(user.getPhoneNumber())
-                .city(user.getCity())
+                .city(user.getCity() != null ? locationService.toCityResponse(user.getCity()) : null)
                 .role(user.getRole())
                 .avatarUrl(user.getAvatarUrl())
                 .createdAt(user.getCreatedAt())

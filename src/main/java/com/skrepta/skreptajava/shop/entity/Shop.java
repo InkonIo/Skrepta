@@ -4,6 +4,7 @@ import com.skrepta.skreptajava.auth.entity.User;
 import com.skrepta.skreptajava.category.entity.Category;
 import com.skrepta.skreptajava.config.VectorType;
 import com.skrepta.skreptajava.item.entity.Item;
+import com.skrepta.skreptajava.location.entity.City;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -17,6 +18,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import org.hibernate.annotations.Type;
+
 @Data
 @Builder
 @NoArgsConstructor
@@ -42,7 +44,11 @@ public class Shop {
     private String logoUrl;
     private String phone;
     private String instagramLink;
-    private String city;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "city_id")
+    private City city;
+
     private String address;
     private double rating = 0.0;
     private boolean isApproved = false;
@@ -63,11 +69,10 @@ public class Shop {
 
     @Column(name = "favorites_count")
     private Integer favoritesCount = 0;
-    
-    // ✅ НОВОЕ: Поле для хранения вектора (embedding)
+
     @Type(VectorType.class)
-@Column(columnDefinition = "vector(1536)")
-private PGvector embedding;
+    @Column(columnDefinition = "vector(1536)")
+    private PGvector embedding;
 
     @Override
     public boolean equals(Object o) {

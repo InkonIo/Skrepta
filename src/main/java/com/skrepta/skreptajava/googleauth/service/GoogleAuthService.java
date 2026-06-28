@@ -7,6 +7,9 @@ import com.skrepta.skreptajava.auth.dto.UserResponse;
 import com.skrepta.skreptajava.auth.entity.User;
 import com.skrepta.skreptajava.auth.repository.UserRepository;
 import com.skrepta.skreptajava.auth.service.JwtService;
+import com.skrepta.skreptajava.location.entity.City;
+import com.skrepta.skreptajava.location.repository.CityRepository;
+import com.skrepta.skreptajava.location.service.LocationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -25,6 +28,8 @@ public class GoogleAuthService {
 
     private final UserRepository userRepository;
     private final JwtService jwtService;
+    private final CityRepository cityRepository;
+    private final LocationService locationService;
     private final RestClient restClient = RestClient.create();
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -53,7 +58,7 @@ public class GoogleAuthService {
                         .password("")
                         .role(User.Role.USER)
                         .avatarUrl(pictureUrl)
-                        .city("Алматы")
+                        .city(resolveDefaultCity())
                         .phoneNumber(null)
                         .createdAt(Instant.now())
                         .build();
@@ -81,13 +86,26 @@ public class GoogleAuthService {
         }
     }
 
+    /**
+     * При регистрации через Google город неизвестен (Google его не отдаёт),
+     * поэтому подставляем Алматы по умолчанию. Пользователь сможет
+     * поменять город позже через PUT /api/auth/me.
+     */
+    private City resolveDefaultCity() {
+        return cityRepository.findAll().stream()
+                .filter(c -> c.getName() != null && c.getName().equalsIgnoreCase("Алматы"))
+                .findFirst()
+                .or(() -> cityRepository.findAll().stream().findFirst())
+                .orElse(null);
+    }
+
     private UserResponse mapToUserResponse(User user) {
         return UserResponse.builder()
                 .id(user.getId())
                 .email(user.getEmail())
                 .fio(user.getFio())
                 .phoneNumber(user.getPhoneNumber())
-                .city(user.getCity())
+                .city(user.getCity() != null ? locationService.toCityResponse(user.getCity()) : null)
                 .role(user.getRole())
                 .avatarUrl(user.getAvatarUrl())
                 .createdAt(user.getCreatedAt())

@@ -1,6 +1,7 @@
 package com.skrepta.skreptajava.auth.dto;
 
 import com.skrepta.skreptajava.auth.entity.User;
+import com.skrepta.skreptajava.location.dto.CityResponse;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -15,7 +16,7 @@ public class UserResponse {
     private String email;
     private String fio;
     private String phoneNumber;
-    private String city;
+    private CityResponse city;
     private User.Role role;
     private String avatarUrl;
     private java.time.Instant createdAt;

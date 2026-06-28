@@ -1,10 +1,11 @@
 package com.skrepta.skreptajava.item.dto;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.skrepta.skreptajava.location.dto.CityResponse;
 import com.skrepta.skreptajava.shop.dto.ShopResponse;
 import lombok.Builder;
 import lombok.Data;
-    import java.math.BigDecimal;
+import java.math.BigDecimal;
 
 import java.time.Instant;
 import java.util.List;
@@ -18,7 +19,7 @@ public class ItemResponse {
     private String description;
     private List<String> images;
     private List<String> tags;
-    private String city;
+    private CityResponse city;
     private boolean isActive;
     private int views;
     private int favorites;

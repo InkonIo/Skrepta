@@ -21,8 +21,8 @@ public class ShopRequest {
 
     private String instagramLink;
 
-    @NotBlank(message = "City is required")
-    private String city;
+    @NotNull(message = "City is required")
+    private Long cityId;
 
     private String address;
 

@@ -12,6 +12,9 @@ import com.skrepta.skreptajava.auth.exception.InvalidCredentialsException;
 import com.skrepta.skreptajava.auth.exception.ResourceNotFoundException;
 import com.skrepta.skreptajava.auth.exception.UserAlreadyExistsException;
 import com.skrepta.skreptajava.auth.repository.UserRepository;
+import com.skrepta.skreptajava.location.entity.City;
+import com.skrepta.skreptajava.location.repository.CityRepository;
+import com.skrepta.skreptajava.location.service.LocationService;
 import com.skrepta.skreptajava.shop.repository.ShopRepository;
 import com.skrepta.skreptajava.shop.entity.Shop;
 import com.skrepta.skreptajava.config.FileStorageService;
@@ -34,6 +37,8 @@ public class AuthService {
 
     private final UserRepository userRepository;
     private final ShopRepository shopRepository;
+    private final CityRepository cityRepository;
+    private final LocationService locationService;
     private final FileStorageService fileStorageService;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
@@ -47,19 +52,21 @@ public class AuthService {
 
         User.Role role = request.getRole() != null ? request.getRole() : User.Role.USER;
 
+        City city = cityRepository.findById(request.getCityId())
+                .orElseThrow(() -> new ResourceNotFoundException("City not found with ID: " + request.getCityId()));
+
         var user = User.builder()
                 .email(request.getEmail())
                 .password(passwordEncoder.encode(request.getPassword()))
                 .fio(request.getFio())
                 .phoneNumber(request.getPhoneNumber())
-                .city(request.getCity())
+                .city(city)
                 .role(role)
                 .createdAt(Instant.now())
                 .build();
 
         userRepository.save(user);
 
-        // Отправляем письмо асинхронно — не блокируем ответ
         String email = user.getEmail();
         String fio = user.getFio();
         CompletableFuture.runAsync(() -> emailService.sendRegistrationConfirmationEmail(email, fio));
@@ -109,7 +116,6 @@ public class AuthService {
         user.setResetPasswordTokenExpiry(Instant.now().plusSeconds(600));
         userRepository.save(user);
 
-        // Сброс пароля — тоже асинхронно
         String email = user.getEmail();
         CompletableFuture.runAsync(() -> emailService.sendPasswordResetCode(email, otp));
     }
@@ -151,30 +157,32 @@ public class AuthService {
     }
 
     @Transactional
-public UserResponse updateMyProfile(String email, UserUpdateRequest request) {
-    User user = userRepository.findByEmail(email)
-            .orElseThrow(() -> new ResourceNotFoundException("User not found with email: " + email));
+    public UserResponse updateMyProfile(String email, UserUpdateRequest request) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with email: " + email));
 
-    if (request.getFio() != null && !request.getFio().isBlank()) {
-        user.setFio(request.getFio());
-    }
-
-    if (request.getPhoneNumber() != null && !request.getPhoneNumber().isBlank()) {
-        if (!request.getPhoneNumber().equals(user.getPhoneNumber())
-                && userRepository.existsByPhoneNumber(request.getPhoneNumber())) {
-            throw new UserAlreadyExistsException("Этот номер телефона уже используется");
+        if (request.getFio() != null && !request.getFio().isBlank()) {
+            user.setFio(request.getFio());
         }
-        user.setPhoneNumber(request.getPhoneNumber());
+
+        if (request.getPhoneNumber() != null && !request.getPhoneNumber().isBlank()) {
+            if (!request.getPhoneNumber().equals(user.getPhoneNumber())
+                    && userRepository.existsByPhoneNumber(request.getPhoneNumber())) {
+                throw new UserAlreadyExistsException("Этот номер телефона уже используется");
+            }
+            user.setPhoneNumber(request.getPhoneNumber());
+        }
+
+        if (request.getCityId() != null) {
+            City city = cityRepository.findById(request.getCityId())
+                    .orElseThrow(() -> new ResourceNotFoundException("City not found with ID: " + request.getCityId()));
+            user.setCity(city);
+        }
+
+        userRepository.save(user);
+
+        return mapToUserResponse(user);
     }
-
-    if (request.getCity() != null && !request.getCity().isBlank()) {
-        user.setCity(request.getCity());
-    }
-
-    userRepository.save(user);
-
-    return mapToUserResponse(user);
-}
 
     @Transactional
     public void deleteMyAccount(String email) {
@@ -225,15 +233,15 @@ public UserResponse updateMyProfile(String email, UserUpdateRequest request) {
     }
 
     private UserResponse mapToUserResponse(User user) {
-    return UserResponse.builder()
-            .id(user.getId())
-            .email(user.getEmail())
-            .fio(user.getFio())
-            .phoneNumber(user.getPhoneNumber())
-            .city(user.getCity())
-            .role(user.getRole())
-            .avatarUrl(user.getAvatarUrl())
-            .createdAt(user.getCreatedAt())   // ← было пропущено, отсюда 1970 на фронте
-            .build();
-}
+        return UserResponse.builder()
+                .id(user.getId())
+                .email(user.getEmail())
+                .fio(user.getFio())
+                .phoneNumber(user.getPhoneNumber())
+                .city(user.getCity() != null ? locationService.toCityResponse(user.getCity()) : null)
+                .role(user.getRole())
+                .avatarUrl(user.getAvatarUrl())
+                .createdAt(user.getCreatedAt())
+                .build();
+    }
 }

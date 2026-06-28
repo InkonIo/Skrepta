@@ -9,6 +9,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
+import com.skrepta.skreptajava.location.entity.City;
 import com.skrepta.skreptajava.shop.entity.Shop;
 
 import java.time.Instant;
@@ -42,7 +43,9 @@ public class User implements UserDetails {
     @Column(unique = true)
     private String phoneNumber;
 
-    private String city;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "city_id")
+    private City city;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -72,17 +75,14 @@ public class User implements UserDetails {
         inverseJoinColumns = @JoinColumn(name = "shop_id")
     )
     private Set<Shop> favoriteShops = new HashSet<>();
-    
-    // Геттеры и сеттеры
+
     public Set<Shop> getFavoriteShops() {
         return favoriteShops;
     }
-    
+
     public void setFavoriteShops(Set<Shop> favoriteShops) {
         this.favoriteShops = favoriteShops;
     }
-
-    // --- UserDetails methods ---
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
@@ -119,7 +119,6 @@ public class User implements UserDetails {
         return true;
     }
 
-    // ✅ КРИТИЧЕСКИ ВАЖНО: Переопределяем equals и hashCode
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

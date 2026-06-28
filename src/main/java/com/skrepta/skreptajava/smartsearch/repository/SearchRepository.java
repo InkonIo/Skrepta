@@ -16,15 +16,8 @@ public class SearchRepository {
 
     private final JdbcTemplate jdbcTemplate;
 
-    // ============================================
-    // SEMANTIC SEARCH (с векторами)
-    // ============================================
-
-    /**
-     * Векторный поиск по товарам
-     */
     public List<Map<String, Object>> searchItems(PGvector embedding, int limit,
-        Long categoryId, String city, Map<String, String> attributes) {
+        Long categoryId, Long cityId, Map<String, String> attributes) {
 
     StringBuilder sql = new StringBuilder("""
         SELECT
@@ -44,9 +37,9 @@ public class SearchRepository {
         sql.append(" AND i.category_id = ?");
         params.add(categoryId);
     }
-    if (city != null && !city.isBlank()) {
-        sql.append(" AND i.city = ?");
-        params.add(city);
+    if (cityId != null) {
+        sql.append(" AND i.city_id = ?");
+        params.add(cityId);
     }
     if (attributes != null && !attributes.isEmpty()) {
         sql.append(" AND i.attributes @> CAST(? AS jsonb)");
@@ -61,9 +54,6 @@ public class SearchRepository {
     return jdbcTemplate.queryForList(sql.toString(), params.toArray());
 }
 
-    /**
-     * Векторный поиск по магазинам
-     */
     public List<Map<String, Object>> searchShops(PGvector embedding, int limit) {
         String sql = """
             SELECT
@@ -76,14 +66,11 @@ public class SearchRepository {
             ORDER BY s.embedding <=> CAST(? AS vector)
             LIMIT ?
             """;
-        
+
         String embeddingStr = embedding.toString();
         return jdbcTemplate.queryForList(sql, embeddingStr, embeddingStr, limit);
     }
 
-    /**
-     * Векторный поиск по категориям
-     */
     public List<Map<String, Object>> searchCategories(PGvector embedding, int limit) {
         String sql = """
             SELECT
@@ -96,21 +83,13 @@ public class SearchRepository {
             ORDER BY c.embedding <=> CAST(? AS vector)
             LIMIT ?
             """;
-        
+
         String embeddingStr = embedding.toString();
         return jdbcTemplate.queryForList(sql, embeddingStr, embeddingStr, limit);
     }
 
-    // ============================================
-    // FALLBACK: KEYWORD SEARCH (без векторов)
-    // ============================================
-
-    /**
-     * Текстовый поиск по товарам (FALLBACK)
-     * Использует простой ILIKE поиск
-     */
     public List<Map<String, Object>> keywordSearchItems(String query, int limit,
-        Long categoryId, String city, Map<String, String> attributes) {
+        Long categoryId, Long cityId, Map<String, String> attributes) {
 
     StringBuilder sql = new StringBuilder("""
         SELECT 
@@ -136,9 +115,9 @@ public class SearchRepository {
         sql.append(" AND i.category_id = ?");
         params.add(categoryId);
     }
-    if (city != null && !city.isBlank()) {
-        sql.append(" AND i.city = ?");
-        params.add(city);
+    if (cityId != null) {
+        sql.append(" AND i.city_id = ?");
+        params.add(cityId);
     }
     if (attributes != null && !attributes.isEmpty()) {
         sql.append(" AND i.attributes @> CAST(? AS jsonb)");
@@ -163,9 +142,6 @@ public class SearchRepository {
     return jdbcTemplate.queryForList(sql.toString(), params.toArray());
 }
 
-    /**
-     * Текстовый поиск по магазинам (FALLBACK)
-     */
     public List<Map<String, Object>> keywordSearchShops(String query, int limit) {
         String sql = """
             SELECT 
@@ -188,19 +164,16 @@ public class SearchRepository {
                 s.created_at DESC
             LIMIT ?
             """;
-        
+
         String likePattern = "%" + query + "%";
         String startsWithPattern = query + "%";
-        
-        return jdbcTemplate.queryForList(sql, 
-            likePattern, likePattern, 
-            query, startsWithPattern, 
+
+        return jdbcTemplate.queryForList(sql,
+            likePattern, likePattern,
+            query, startsWithPattern,
             limit);
     }
 
-    /**
-     * Текстовый поиск по категориям (FALLBACK)
-     */
     public List<Map<String, Object>> keywordSearchCategories(String query, int limit) {
         String sql = """
             SELECT 
@@ -219,13 +192,13 @@ public class SearchRepository {
                 END
             LIMIT ?
             """;
-        
+
         String likePattern = "%" + query + "%";
         String startsWithPattern = query + "%";
-        
-        return jdbcTemplate.queryForList(sql, 
-            likePattern, 
-            query, startsWithPattern, 
+
+        return jdbcTemplate.queryForList(sql,
+            likePattern,
+            query, startsWithPattern,
             limit);
     }
 }

@@ -2,6 +2,7 @@ package com.skrepta.skreptajava.item.entity;
 
 import com.skrepta.skreptajava.category.entity.Category;
 import com.skrepta.skreptajava.config.VectorType;
+import com.skrepta.skreptajava.location.entity.City;
 import com.skrepta.skreptajava.shop.entity.Shop;
 
 import io.hypersistence.utils.hibernate.type.json.JsonType;
@@ -58,7 +59,10 @@ public class Item {
     @Column(name = "tag")
     private List<String> tags;
 
-    private String city;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "city_id")
+    private City city;
+
     private boolean isActive = true;
     private int views = 0;
     private int favorites = 0;
@@ -69,8 +73,8 @@ public class Item {
     private Instant updatedAt;
 
     @Type(JsonType.class)
-@Column(name = "attributes", columnDefinition = "jsonb")
-private JsonNode attributes;
+    @Column(name = "attributes", columnDefinition = "jsonb")
+    private JsonNode attributes;
 
     @Type(VectorType.class)
     @Column(columnDefinition = "vector(1536)")

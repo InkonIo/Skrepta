@@ -1,6 +1,3 @@
-// ============================================
-// SearchRequest.java
-// ============================================
 package com.skrepta.skreptajava.smartsearch.dto;
 
 import java.util.Map;
@@ -13,6 +10,6 @@ public class SearchRequest {
     private Integer limit = 20; // По умолчанию 20 результатов
     private String type; // "ITEM", "SHOP", "CATEGORY", или null для всех типов
     private Long categoryId;
-private String city;
-private Map<String, String> attributes;
+    private Long cityId;
+    private Map<String, String> attributes;
 }

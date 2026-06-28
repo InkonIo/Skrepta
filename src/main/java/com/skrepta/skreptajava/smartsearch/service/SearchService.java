@@ -29,35 +29,25 @@ public class SearchService {
     private final ShopService shopService;
     private final CategoryService categoryService;
 
-    private static final double MIN_SCORE_THRESHOLD = 0.3; // Снизил до 30%
+    private static final double MIN_SCORE_THRESHOLD = 0.3;
 
-    /**
-     * Выполняет семантический поиск по всем типам объектов
-     * С FALLBACK на keyword search если AI недоступен
-     */
     @Transactional(readOnly = true)
     public SearchResponse search(SearchRequest request) {
-        log.info("Searching for: '{}' (type: {}, limit: {})", 
+        log.info("Searching for: '{}' (type: {}, limit: {})",
                 request.getQuery(), request.getType(), request.getLimit());
 
-        // Пытаемся использовать AI semantic search
         try {
             return semanticSearch(request);
-            
+
         } catch (Exception e) {
-            log.warn("⚠️ Semantic search failed (OpenAI unavailable?), falling back to keyword search: {}", 
+            log.warn("⚠️ Semantic search failed (OpenAI unavailable?), falling back to keyword search: {}",
                     e.getMessage());
-            
-            // FALLBACK: Простой текстовый поиск
+
             return keywordSearchFallback(request);
         }
     }
 
-    /**
-     * AI-powered semantic search (основной метод)
-     */
     private SearchResponse semanticSearch(SearchRequest request) {
-        // 1. Генерируем вектор для поискового запроса
         PGvector queryEmbedding = embeddingService.generateEmbedding(request.getQuery());
         if (queryEmbedding == null) {
             throw new RuntimeException("Failed to generate embedding");
@@ -65,7 +55,6 @@ public class SearchService {
 
         List<SearchResultItem> allResults = new ArrayList<>();
 
-        // 2. Ищем по каждому типу объектов
         if (request.getType() == null || "ITEM".equals(request.getType())) {
             allResults.addAll(searchItemsInternal(queryEmbedding, request.getLimit(), request));
         }
@@ -78,34 +67,29 @@ public class SearchService {
             allResults.addAll(searchCategoriesInternal(queryEmbedding, request.getLimit()));
         }
 
-        // 3. Сортируем по релевантности и фильтруем
         List<SearchResultItem> filteredResults = allResults.stream()
                 .filter(item -> item.getScore() >= MIN_SCORE_THRESHOLD)
                 .sorted(Comparator.comparing(SearchResultItem::getScore).reversed())
                 .limit(request.getLimit())
                 .toList();
 
-        log.info("✅ Semantic search: found {} results for query: '{}'", 
+        log.info("✅ Semantic search: found {} results for query: '{}'",
                 filteredResults.size(), request.getQuery());
 
         return SearchResponse.builder()
                 .query(request.getQuery())
                 .totalResults(filteredResults.size())
                 .results(filteredResults)
-                .isFallback(false) // AI search успешен
+                .isFallback(false)
                 .build();
     }
 
-    /**
-     * FALLBACK: Простой keyword search (когда OpenAI недоступен)
-     */
     private SearchResponse keywordSearchFallback(SearchRequest request) {
         log.info("🔍 Using FALLBACK keyword search for: '{}'", request.getQuery());
 
         List<SearchResultItem> allResults = new ArrayList<>();
 
         try {
-            // Keyword search по каждому типу
             if (request.getType() == null || "ITEM".equals(request.getType())) {
                 allResults.addAll(keywordSearchItems(request.getQuery(), request.getLimit(), request));
             }
@@ -118,7 +102,6 @@ public class SearchService {
                 allResults.addAll(keywordSearchCategories(request.getQuery(), request.getLimit()));
             }
 
-            // Сортируем и обрезаем
             List<SearchResultItem> results = allResults.stream()
                     .sorted(Comparator.comparing(SearchResultItem::getScore).reversed())
                     .limit(request.getLimit())
@@ -130,14 +113,13 @@ public class SearchService {
                     .query(request.getQuery())
                     .totalResults(results.size())
                     .results(results)
-                    .isFallback(true) // Это fallback!
+                    .isFallback(true)
                     .message("AI search temporarily unavailable. Showing keyword-based results.")
                     .build();
 
         } catch (Exception e) {
             log.error("❌ Even fallback search failed: {}", e.getMessage());
-            
-            // Возвращаем пустой результат
+
             return SearchResponse.builder()
                     .query(request.getQuery())
                     .totalResults(0)
@@ -148,15 +130,11 @@ public class SearchService {
         }
     }
 
-    // ============================================
-    // SEMANTIC SEARCH - внутренние методы
-    // ============================================
-
     private List<SearchResultItem> searchItemsInternal(PGvector queryEmbedding, int limit, SearchRequest request) {
     try {
         List<Map<String, Object>> rawResults = searchRepository.searchItems(
-            queryEmbedding, limit, request.getCategoryId(), request.getCity(), request.getAttributes());
-            
+            queryEmbedding, limit, request.getCategoryId(), request.getCityId(), request.getAttributes());
+
             return rawResults.stream()
                     .map(result -> {
                         Long id = (Long) result.get("id");
@@ -184,7 +162,7 @@ public class SearchService {
     private List<SearchResultItem> searchShopsInternal(PGvector queryEmbedding, int limit) {
         try {
             List<Map<String, Object>> rawResults = searchRepository.searchShops(queryEmbedding, limit);
-            
+
             return rawResults.stream()
                     .map(result -> {
                         Long id = (Long) result.get("id");
@@ -212,7 +190,7 @@ public class SearchService {
     private List<SearchResultItem> searchCategoriesInternal(PGvector queryEmbedding, int limit) {
         try {
             List<Map<String, Object>> rawResults = searchRepository.searchCategories(queryEmbedding, limit);
-            
+
             return rawResults.stream()
                     .map(result -> {
                         Long id = (Long) result.get("id");
@@ -237,15 +215,11 @@ public class SearchService {
         }
     }
 
-    // ============================================
-    // FALLBACK: KEYWORD SEARCH - внутренние методы
-    // ============================================
-
     private List<SearchResultItem> keywordSearchItems(String query, int limit, SearchRequest request) {
     try {
         List<Map<String, Object>> rawResults =
-            searchRepository.keywordSearchItems(query, limit, request.getCategoryId(), request.getCity(), request.getAttributes());
-            
+            searchRepository.keywordSearchItems(query, limit, request.getCategoryId(), request.getCityId(), request.getAttributes());
+
             return rawResults.stream()
                     .map(result -> {
                         Long id = (Long) result.get("id");
@@ -271,9 +245,9 @@ public class SearchService {
 
     private List<SearchResultItem> keywordSearchShops(String query, int limit) {
         try {
-            List<Map<String, Object>> rawResults = 
+            List<Map<String, Object>> rawResults =
                 searchRepository.keywordSearchShops(query, limit);
-            
+
             return rawResults.stream()
                     .map(result -> {
                         Long id = (Long) result.get("id");
@@ -299,9 +273,9 @@ public class SearchService {
 
     private List<SearchResultItem> keywordSearchCategories(String query, int limit) {
         try {
-            List<Map<String, Object>> rawResults = 
+            List<Map<String, Object>> rawResults =
                 searchRepository.keywordSearchCategories(query, limit);
-            
+
             return rawResults.stream()
                     .map(result -> {
                         Long id = (Long) result.get("id");

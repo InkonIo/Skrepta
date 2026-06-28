@@ -12,6 +12,9 @@ import com.skrepta.skreptajava.item.dto.ItemRequest;
 import com.skrepta.skreptajava.item.dto.ItemResponse;
 import com.skrepta.skreptajava.item.entity.Item;
 import com.skrepta.skreptajava.item.repository.ItemRepository;
+import com.skrepta.skreptajava.location.entity.City;
+import com.skrepta.skreptajava.location.repository.CityRepository;
+import com.skrepta.skreptajava.location.service.LocationService;
 import com.skrepta.skreptajava.shop.entity.Shop;
 import com.skrepta.skreptajava.shop.repository.ShopRepository;
 import com.skrepta.skreptajava.shop.service.ShopService;
@@ -38,6 +41,8 @@ public class ItemService {
     private final ShopRepository shopRepository;
     private final UserRepository userRepository;
     private final CategoryRepository categoryRepository;
+    private final CityRepository cityRepository;
+    private final LocationService locationService;
     private final FileStorageService fileStorageService;
     private final ShopService shopService;
     private final IndexingService indexingService;
@@ -54,6 +59,9 @@ public class ItemService {
         Category category = categoryRepository.findById(request.getCategoryId())
                 .orElseThrow(() -> new ResourceNotFoundException("Category not found with ID: " + request.getCategoryId()));
 
+        City city = cityRepository.findById(request.getCityId())
+                .orElseThrow(() -> new ResourceNotFoundException("City not found with ID: " + request.getCityId()));
+
         List<String> imageUrls = uploadImages(request.getImageFiles());
 
         Item item = Item.builder()
@@ -64,7 +72,7 @@ public class ItemService {
                 .category(category)
                 .images(imageUrls)
                 .tags(request.getTags())
-                .city(request.getCity())
+                .city(city)
                 .attributes(parseAttributes(request.getAttributesJson()))
                 .isActive(true)
                 .createdAt(Instant.now())
@@ -100,12 +108,15 @@ public class ItemService {
         Category category = categoryRepository.findById(request.getCategoryId())
                 .orElseThrow(() -> new ResourceNotFoundException("Category not found with ID: " + request.getCategoryId()));
 
+        City city = cityRepository.findById(request.getCityId())
+                .orElseThrow(() -> new ResourceNotFoundException("City not found with ID: " + request.getCityId()));
+
         item.setTitle(request.getTitle());
         item.setDescription(request.getDescription());
         item.setPrice(request.getPrice());
         item.setCategory(category);
         item.setTags(request.getTags());
-        item.setCity(request.getCity());
+        item.setCity(city);
         item.setAttributes(parseAttributes(request.getAttributesJson()));
         item.setUpdatedAt(Instant.now());
 
@@ -188,7 +199,7 @@ public class ItemService {
                 .categoryName(item.getCategory() != null ? item.getCategory().getName() : null)
                 .images(item.getImages())
                 .tags(item.getTags())
-                .city(item.getCity())
+                .city(item.getCity() != null ? locationService.toCityResponse(item.getCity()) : null)
                 .isActive(item.isActive())
                 .views(item.getViews())
                 .favorites(item.getFavorites())

@@ -3,6 +3,7 @@ package com.skrepta.skreptajava.auth.dto;
 import com.skrepta.skreptajava.auth.entity.User;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -30,8 +31,8 @@ public class RegisterRequest {
     // но бэк всё равно требовал заполнить поле. Теперь действительно опционально.
     private String phoneNumber;
 
-    @NotBlank(message = "City cannot be empty")
-    private String city;
+    @NotNull(message = "City cannot be empty")
+    private Long cityId;
 
     private User.Role role; // Optional, defaults to USER in service layer
 }

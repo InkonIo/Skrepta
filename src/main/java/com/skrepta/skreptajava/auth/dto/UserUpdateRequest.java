@@ -19,6 +19,5 @@ public class UserUpdateRequest {
     @Pattern(regexp = "^\\+?[0-9]{10,15}$", message = "Некорректный формат телефона")
     private String phoneNumber;
 
-    @Size(max = 100, message = "Название города слишком длинное")
-    private String city;
+    private Long cityId;
 }

@@ -17,7 +17,7 @@ public class UserUpdateRequest {
 
     private String phoneNumber;
 
-    private String city;
+    private Long cityId;
 
     @NotNull(message = "Role is required")
     private User.Role role;
