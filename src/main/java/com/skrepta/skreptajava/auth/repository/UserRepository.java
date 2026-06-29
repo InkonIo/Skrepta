@@ -2,11 +2,9 @@ package com.skrepta.skreptajava.auth.repository;
 
 import com.skrepta.skreptajava.auth.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
 
-@Repository
 public interface UserRepository extends JpaRepository<User, Long> {
 
     /**

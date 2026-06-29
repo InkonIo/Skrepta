@@ -1,4 +1,4 @@
-package com.skrepta.skrepta;
+package com.skrepta.skreptajava;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;

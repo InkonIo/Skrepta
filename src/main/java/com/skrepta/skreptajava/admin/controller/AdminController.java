@@ -6,7 +6,6 @@ import com.skrepta.skreptajava.admin.service.AdminService;
 import com.skrepta.skreptajava.auth.dto.UserResponse;
 import com.skrepta.skreptajava.shop.dto.ShopResponse;
 import com.skrepta.skreptajava.shop.service.ShopService;
-	import com.skrepta.skreptajava.item.service.ItemService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -18,12 +17,11 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/admin")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('ADMIN')") // Все методы в этом контроллере доступны только ADMIN
+@PreAuthorize("hasRole('ADMIN')")
 public class AdminController {
 
     private final AdminService adminService;
     private final ShopService shopService;
-	    private final ItemService itemService;
 
     // === Управление пользователями ===
     
